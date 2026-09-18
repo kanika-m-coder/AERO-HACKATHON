@@ -1,0 +1,35 @@
+/* Design tokens: palette, typography, layout metrics, theme variants. */
+:root{
+  --bg:#0B1014; --bg-2:#0E151A; --panel:#121A1F; --panel-2:#16212800;
+  --rule:#22303A; --rule-soft:#1A252C;
+  --ink:#DCE6EC; --ink-2:#93A6B2; --ink-3:#61757F;
+  --nominal:#7ED6A5; --caution:#E8A33D; --warn:#E5484D; --twin:#8B8FE8;
+  --info:#5AB7C9;
+  --grid:#16222A;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --rail:212px; --strip:86px;
+  --shadow:0 0 0 1px var(--rule);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#EEF1F3; --bg-2:#E5EAEE; --panel:#FFFFFF;
+    --rule:#C8D2D8; --rule-soft:#DCE3E7;
+    --ink:#132028; --ink-2:#4A5C67; --ink-3:#7C8C96;
+    --nominal:#1E8E5A; --caution:#B87413; --warn:#C2272D; --twin:#5B56C8; --info:#1F7C8C; --grid:#DFE6EA;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#EEF1F3; --bg-2:#E5EAEE; --panel:#FFFFFF;
+  --rule:#C8D2D8; --rule-soft:#DCE3E7;
+  --ink:#132028; --ink-2:#4A5C67; --ink-3:#7C8C96;
+  --nominal:#1E8E5A; --caution:#B87413; --warn:#C2272D; --twin:#5B56C8;
+  --info:#1F7C8C; --grid:#DFE6EA;
+}
+:root[data-theme="dark"]{
+  --bg:#0B1014; --bg-2:#0E151A; --panel:#121A1F;
+  --rule:#22303A; --rule-soft:#1A252C;
+  --ink:#DCE6EC; --ink-2:#93A6B2; --ink-3:#61757F;
+  --nominal:#7ED6A5; --caution:#E8A33D; --warn:#E5484D; --twin:#8B8FE8;
+  --info:#5AB7C9; --grid:#16222A;
+}

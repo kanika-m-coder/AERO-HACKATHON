@@ -1,0 +1,13 @@
+{
+  "name": "aether-dt",
+  "version": "2.4.1",
+  "description": "Digital twin and predictive engine health monitoring platform for a MALE UAV aero-piston engine",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "build": "node build.js"
+  },
+  "keywords": ["digital-twin", "predictive-maintenance", "rul", "uav", "telemetry", "condition-monitoring"],
+  "license": "MIT"
+}

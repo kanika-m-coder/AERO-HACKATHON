@@ -1,0 +1,2405 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AETHER-DT · UAV Engine Digital Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== src/styles/tokens.css ===== */
+/* Design tokens: palette, typography, layout metrics, theme variants. */
+:root{
+  --bg:#0B1014; --bg-2:#0E151A; --panel:#121A1F; --panel-2:#16212800;
+  --rule:#22303A; --rule-soft:#1A252C;
+  --ink:#DCE6EC; --ink-2:#93A6B2; --ink-3:#61757F;
+  --nominal:#7ED6A5; --caution:#E8A33D; --warn:#E5484D; --twin:#8B8FE8;
+  --info:#5AB7C9;
+  --grid:#16222A;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --rail:212px; --strip:86px;
+  --shadow:0 0 0 1px var(--rule);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#EEF1F3; --bg-2:#E5EAEE; --panel:#FFFFFF;
+    --rule:#C8D2D8; --rule-soft:#DCE3E7;
+    --ink:#132028; --ink-2:#4A5C67; --ink-3:#7C8C96;
+    --nominal:#1E8E5A; --caution:#B87413; --warn:#C2272D; --twin:#5B56C8; --info:#1F7C8C; --grid:#DFE6EA;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#EEF1F3; --bg-2:#E5EAEE; --panel:#FFFFFF;
+  --rule:#C8D2D8; --rule-soft:#DCE3E7;
+  --ink:#132028; --ink-2:#4A5C67; --ink-3:#7C8C96;
+  --nominal:#1E8E5A; --caution:#B87413; --warn:#C2272D; --twin:#5B56C8;
+  --info:#1F7C8C; --grid:#DFE6EA;
+}
+:root[data-theme="dark"]{
+  --bg:#0B1014; --bg-2:#0E151A; --panel:#121A1F;
+  --rule:#22303A; --rule-soft:#1A252C;
+  --ink:#DCE6EC; --ink-2:#93A6B2; --ink-3:#61757F;
+  --nominal:#7ED6A5; --caution:#E8A33D; --warn:#E5484D; --twin:#8B8FE8;
+  --info:#5AB7C9; --grid:#16222A;
+}
+
+/* ===== src/styles/app.css ===== */
+/* Application styling: shell, panels, instruments, charts, tables. */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--info); outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh}
+.rail{
+  background:var(--bg-2); border-right:1px solid var(--rule);
+  position:sticky; top:0; height:100vh; display:flex; flex-direction:column;
+}
+.brand{padding:14px 16px 12px;border-bottom:1px solid var(--rule)}
+.brand-mark{display:flex;align-items:center;gap:9px}
+.brand-mark svg{flex:none}
+.brand-name{font-weight:700;letter-spacing:.06em;font-size:15px}
+.brand-sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:3px;letter-spacing:.02em}
+.rail-scroll{overflow-y:auto;flex:1;padding:8px 0 14px}
+.rail-group{padding:12px 16px 5px;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.09em}
+.navitem{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:8px 16px;background:none;border:0;border-left:2px solid transparent;
+  text-align:left;cursor:pointer;color:var(--ink-2);font-size:13.5px;
+}
+.navitem:hover{background:var(--panel);color:var(--ink)}
+.navitem[aria-current="true"]{border-left-color:var(--caution);color:var(--ink);background:var(--panel);font-weight:600}
+.navitem .lyr{font-family:var(--mono);font-size:10px;color:var(--ink-3);width:16px;flex:none}
+.navitem[aria-current="true"] .lyr{color:var(--caution)}
+.navitem .dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--warn);display:none}
+.navitem.has-alert .dot{display:block}
+.rail-foot{border-top:1px solid var(--rule);padding:10px 16px;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+
+.main{min-width:0;display:flex;flex-direction:column}
+
+/* ---------- status strip ---------- */
+.strip{
+  position:sticky;top:0;z-index:20;background:var(--bg-2);
+  border-bottom:1px solid var(--rule);display:flex;align-items:stretch;
+  min-height:var(--strip);flex-wrap:wrap;
+}
+.strip-block{padding:10px 16px;border-right:1px solid var(--rule-soft);display:flex;flex-direction:column;justify-content:center;gap:2px}
+.strip-block .k{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.08em}
+.strip-block .v{font-family:var(--mono);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.strip-block .v small{font-size:11px;color:var(--ink-2);font-weight:400}
+.strip-spacer{flex:1}
+.strip-ctl{display:flex;align-items:center;gap:6px;padding:10px 14px}
+.btn{
+  background:var(--panel);border:1px solid var(--rule);color:var(--ink-2);
+  padding:6px 11px;font-size:12.5px;cursor:pointer;border-radius:2px;
+}
+.btn:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn.on{border-color:var(--caution);color:var(--caution)}
+.btn.primary{background:var(--caution);border-color:var(--caution);color:#12181B;font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.mono{font-family:var(--mono);font-size:11.5px;padding:6px 9px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.masterbar{width:100%;height:3px;background:var(--nominal);transition:background .3s}
+.masterbar.caution{background:var(--caution)}
+.masterbar.warn{background:var(--warn);animation:pulse 1.1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- views ---------- */
+.view{padding:18px 22px 40px;display:none}
+.view.active{display:block}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.view-title{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}
+.view-desc{color:var(--ink-2);font-size:13px;max-width:62ch;margin:4px 0 0}
+
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-2-1{grid-template-columns:2fr 1fr}
+.g-1-2{grid-template-columns:1fr 2fr}
+.span2{grid-column:span 2}
+
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:2px;min-width:0}
+.panel-head{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--rule-soft)}
+.panel-title{font-size:12.5px;font-weight:600;letter-spacing:.01em}
+.panel-tag{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.06em;margin-left:auto}
+.panel-body{padding:13px}
+.panel-body.tight{padding:8px}
+
+.kv{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--rule-soft);font-size:12.5px}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--ink-2)}
+.kv .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.nom{color:var(--nominal)} .cau{color:var(--caution)} .wrn{color:var(--warn)}
+.twinc{color:var(--twin)} .dim{color:var(--ink-2)} .dimmer{color:var(--ink-3)}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 7px;border:1px solid currentColor;border-radius:2px}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.07em;font-weight:500;padding:6px 8px;border-bottom:1px solid var(--rule)}
+td{padding:6px 8px;border-bottom:1px solid var(--rule-soft);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+.tbl-wrap{overflow-x:auto}
+
+canvas{display:block;width:100%}
+.chart{position:relative}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;color:var(--ink-2);padding:0 13px 10px}
+.chart-legend i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px}
+
+.bar{height:5px;background:var(--rule-soft);border-radius:1px;overflow:hidden}
+.bar>span{display:block;height:100%;background:var(--nominal);transition:width .25s linear,background .3s}
+
+input[type=range]{width:100%;accent-color:var(--caution);background:transparent}
+select,input[type=text],input[type=number]{
+  background:var(--bg);border:1px solid var(--rule);color:var(--ink);
+  padding:6px 8px;font-family:var(--sans);font-size:13px;border-radius:2px;width:100%;
+}
+label.fld{display:block;margin-bottom:10px}
+label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.06em;margin-bottom:4px}
+
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule-soft)}
+.switchrow:last-child{border-bottom:0}
+.switchrow .nm{font-size:13px}
+.switchrow .sub{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.toggle{width:38px;height:20px;border-radius:10px;background:var(--rule);border:0;position:relative;cursor:pointer;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--ink-3);transition:transform .18s,background .18s}
+.toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--warn) 35%,transparent)}
+.toggle[aria-pressed="true"]::after{transform:translateX(18px);background:var(--warn)}
+
+.log{font-family:var(--mono);font-size:11.5px;max-height:320px;overflow-y:auto}
+.log-row{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--rule-soft)}
+.log-row .ts{color:var(--ink-3);flex:none}
+.log-row .sev{flex:none;width:52px}
+
+/* EICAS tape cluster */
+.tapes{display:flex;gap:10px;overflow-x:auto;padding:14px 13px}
+.tape{flex:1;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.tape-name{font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:.06em}
+.tape-track{position:relative;width:100%;height:132px;background:var(--bg);border:1px solid var(--rule-soft);overflow:hidden}
+.tape-fill{position:absolute;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--nominal) 26%,transparent);border-top:2px solid var(--nominal);transition:height .12s linear}
+.tape-redline{position:absolute;left:0;right:0;height:1px;background:var(--warn);opacity:.75}
+.tape-cautline{position:absolute;left:0;right:0;height:1px;background:var(--caution);opacity:.55}
+.tape-twin{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--twin);transition:bottom .12s linear}
+.tape-val{font-family:var(--mono);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.tape-unit{font-family:var(--mono);font-size:9px;color:var(--ink-3)}
+
+.cylgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cyl{border:1px solid var(--rule-soft);padding:8px;background:var(--bg)}
+.cyl h5{margin:0 0 6px;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.06em;font-weight:500}
+.cyl .big{font-family:var(--mono);font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.cyl .sm{font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+
+.arch{display:flex;flex-direction:column;gap:0}
+.arch-layer{display:grid;grid-template-columns:34px 1fr;border:1px solid var(--rule);border-bottom:0;background:var(--panel)}
+.arch-layer:last-child{border-bottom:1px solid var(--rule)}
+.arch-layer .n{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--ink-3);border-right:1px solid var(--rule-soft);background:var(--bg-2)}
+.arch-layer .c{padding:9px 12px}
+.arch-layer h4{margin:0 0 2px;font-size:13px;font-weight:600}
+.arch-layer p{margin:0;font-size:12px;color:var(--ink-2)}
+.arch-layer code{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.arch-layer.live{border-left:2px solid var(--caution)}
+
+.rulbar{position:relative;height:26px;background:var(--bg);border:1px solid var(--rule-soft);overflow:hidden}
+.rulbar .band{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--twin) 22%,transparent)}
+.rulbar .pt{position:absolute;top:0;bottom:0;width:2px;background:var(--twin)}
+.rulbar .lbl{position:absolute;right:6px;top:4px;font-family:var(--mono);font-size:11px}
+
+.timeline{position:relative;height:38px;background:var(--bg);border:1px solid var(--rule-soft);margin-bottom:8px}
+.timeline .ev{position:absolute;top:0;bottom:0;width:2px}
+.timeline .cursor{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);box-shadow:0 0 0 1px var(--bg)}
+.timeline .seg{position:absolute;top:0;bottom:0;border-right:1px solid var(--rule-soft);font-family:var(--mono);font-size:9px;color:var(--ink-3);padding:3px 4px;overflow:hidden;white-space:nowrap}
+
+.report{background:var(--bg);border:1px solid var(--rule-soft);padding:20px;font-size:13px;max-height:560px;overflow:auto}
+.report h3{margin:0 0 3px;font-size:16px}
+.report h4{margin:20px 0 7px;font-size:12px;font-family:var(--mono);color:var(--ink-3);letter-spacing:.07em;font-weight:500;border-bottom:1px solid var(--rule-soft);padding-bottom:4px}
+.report p{margin:0 0 8px;color:var(--ink-2);max-width:78ch}
+.report ul{margin:0 0 8px;padding-left:18px;color:var(--ink-2)}
+.report li{margin-bottom:4px}
+
+.toast{position:fixed;bottom:18px;right:18px;z-index:80;background:var(--panel);border:1px solid var(--caution);color:var(--ink);padding:10px 14px;font-size:13px;border-radius:2px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+
+.hint{font-size:12px;color:var(--ink-3);margin-top:8px}
+.sep{height:1px;background:var(--rule-soft);margin:12px 0}
+
+@media print{
+  .rail,.strip,.masterbar,.toast,.panel-tag,.view-desc{display:none!important}
+  .app{display:block}
+  body{background:#fff;color:#000}
+  .view{padding:0}
+  .panel{border:1px solid #bbb;background:#fff;break-inside:avoid}
+  .report{max-height:none;overflow:visible;border:0;padding:0;background:#fff}
+  .report td,.report th{border-color:#ddd}
+}
+@media (max-width:1180px){ .g4{grid-template-columns:repeat(2,minmax(0,1fr))} .g3{grid-template-columns:repeat(2,minmax(0,1fr))} .g-2-1,.g-1-2{grid-template-columns:1fr} }
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--rule)}
+  .rail-scroll{display:flex;overflow-x:auto;padding:0}
+  .rail-group,.rail-foot{display:none}
+  .navitem{border-left:0;border-bottom:2px solid transparent;white-space:nowrap;padding:10px 13px}
+  .navitem[aria-current="true"]{border-left:0;border-bottom-color:var(--caution)}
+  .g2,.g3,.g4{grid-template-columns:1fr} .span2{grid-column:auto}
+  .view{padding:14px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="10" cy="10" r="8.5" fill="none" stroke="var(--caution)" stroke-width="1.2"/>
+          <circle cx="10" cy="10" r="3" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>
+          <path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3" stroke="var(--ink-2)" stroke-width="1.2"/>
+        </svg>
+        <span class="brand-name">AETHER-DT</span>
+      </div>
+      <div class="brand-sub">MALE UAV · PISTON ENGINE TWIN</div>
+    </div>
+    <div class="rail-scroll" id="nav"></div>
+    <div class="rail-foot">
+      <div>BUILD 2.4.1-demo</div>
+      <div id="railClock">MET 00:00:00</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header class="strip" id="strip"></header>
+    <div class="masterbar" id="masterbar"></div>
+    <div id="views"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+</body>
+</html>
+<script>
+
+/* ===== src/core/util.js ===== */
+// Small shared helpers: maths, deterministic noise, formatting, DOM.
+
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rnd=(()=>{let s=20260918;return()=>{s=(s*1664525+1013904223)&0xffffffff;return (s>>>8)/16777216;};})();
+const gauss=(()=>{let sp=null;return(sd=1)=>{if(sp!==null){const v=sp;sp=null;return v*sd;}
+  let u=0,v=0,s=0;do{u=rnd()*2-1;v=rnd()*2-1;s=u*u+v*v;}while(s>=1||s===0);
+  const m=Math.sqrt(-2*Math.log(s)/s);sp=v*m;return u*m*sd;};})();
+const fmt=(v,d=1)=>(v==null||isNaN(v))?'--':v.toFixed(d);
+const hhmmss=s=>{s=Math.max(0,Math.floor(s));const h=(s/3600)|0,m=((s%3600)/60)|0,x=s%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0');};
+const el=(tag,cls,html)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(html!=null)n.innerHTML=html;return n;};
+const $=(s,r=document)=>r.querySelector(s);
+
+/* ===== src/core/EventBus.js ===== */
+// Minimal pub/sub used to decouple the backend services from the views.
+
+class EventBus{
+  constructor(){this.m=new Map();}
+  on(ev,fn){(this.m.get(ev)||this.m.set(ev,[]).get(ev)).push(fn);return()=>this.off(ev,fn);}
+  off(ev,fn){const a=this.m.get(ev);if(a)a.splice(a.indexOf(fn),1);}
+  emit(ev,p){(this.m.get(ev)||[]).forEach(f=>{try{f(p);}catch(e){console.error('[bus]',ev,e);}});}
+}
+const bus=new EventBus();
+
+/* ===== src/backend/limits.js ===== */
+// Published operating limits and severity classification.
+
+// Operating limits for a Rotax 914-class turbocharged aero-piston engine.
+const LIMITS={
+  rpm:{caution:5600,red:5800,min:0,max:6200,unit:'RPM',name:'RPM'},
+  map:{caution:39.0,red:41.0,min:10,max:45,unit:'inHg',name:'MAP'},
+  egt:{caution:900,red:950,min:200,max:1000,unit:'\u00B0C',name:'EGT'},
+  cht:{caution:120,red:135,min:20,max:150,unit:'\u00B0C',name:'CHT'},
+  oilT:{caution:125,red:140,min:20,max:150,unit:'\u00B0C',name:'OIL T'},
+  oilP:{caution:1.5,red:1.2,min:0,max:7,unit:'bar',name:'OIL P',inverted:true},
+  cltT:{caution:115,red:120,min:20,max:130,unit:'\u00B0C',name:'CLT T'},
+  fuelP:{caution:0.22,red:0.15,min:0,max:0.6,unit:'bar',name:'FUEL P',inverted:true},
+  vib:{caution:7.1,red:11.2,min:0,max:18,unit:'mm/s',name:'VIB'},
+  volt:{caution:12.4,red:11.8,min:8,max:16,unit:'V',name:'BUS V',inverted:true},
+  iat:{caution:70,red:85,min:-30,max:100,unit:'\u00B0C',name:'IAT'},
+  ff:{caution:40,red:46,min:0,max:50,unit:'L/h',name:'FUEL FLOW'}
+};
+const sevOf=(key,v)=>{const L=LIMITS[key];if(!L||v==null)return 0;
+  if(L.inverted)return v<=L.red?2:v<=L.caution?1:0;
+  return v>=L.red?2:v>=L.caution?1:0;};
+
+/* ===== src/backend/faults.js ===== */
+// Catalogue of seeded failure modes available to the injector.
+
+const FAULT_DEFS=[
+ {id:'plug_foul',   name:'Spark plug fouling, cylinder 2', sys:'Ignition',    rate:0.020,
+  hint:'Cyl 2 EGT falls, roughness and 1x vibration rise, slight fuel-flow increase.'},
+ {id:'detonation',  name:'Detonation onset, cylinder 3',   sys:'Combustion',  rate:0.030,
+  hint:'Cyl 3 CHT and EGT climb together with a sharp rise in 2x vibration.'},
+ {id:'oil_leak',    name:'Oil system leak',                sys:'Lubrication', rate:0.021,
+  hint:'Oil pressure decays, oil temperature climbs, quantity falls steadily.'},
+ {id:'coolant_loss',name:'Coolant loss / pump wear',       sys:'Cooling',     rate:0.018,
+  hint:'Coolant temperature diverges upward from the twin prediction.'},
+ {id:'wastegate',   name:'Turbo wastegate stuck open',     sys:'Induction',   rate:0.045,
+  hint:'Manifold pressure cannot reach commanded boost; power and airspeed fall off.'},
+ {id:'injector',    name:'Injector clogging, cylinder 1',  sys:'Fuel',        rate:0.022,
+  hint:'Cyl 1 runs lean: EGT rises, CHT falls, total fuel flow drops.'},
+ {id:'bearing',     name:'Main bearing wear',              sys:'Mechanical',  rate:0.019,
+  hint:'Broadband vibration grows, oil pressure sags, oil temperature creeps up.'},
+ {id:'filter',      name:'Air filter blockage',            sys:'Induction',   rate:0.030,
+  hint:'Intake depression rises, MAP and volumetric efficiency drop, IAT rises.'},
+ {id:'sensor_drift',name:'CHT 3 sensor drift',             sys:'Sensors',     rate:0.035,
+  hint:'Indicated CHT 3 diverges while all physical cross-checks stay nominal.'},
+ {id:'alternator',  name:'Alternator under-charge',        sys:'Electrical',  rate:0.050,
+  hint:'Bus voltage and charge current decay; avionics load moves onto the battery.'},
+ {id:'fuelpump',    name:'Fuel pump degradation',          sys:'Fuel',        rate:0.025,
+  hint:'Fuel pressure droops under high demand, flow lags the commanded value.'}
+];
+const FAULT_BY_ID=Object.fromEntries(FAULT_DEFS.map(f=>[f.id,f]));
+
+/* ===== src/backend/profiles.js ===== */
+// Mission profiles flown by the autopilot scheduler.
+
+const PROFILES={
+  ISR:{name:'ISR orbit (standard)',segs:[
+    {ph:'TAXI',d:50,th:.16,alt:0},{ph:'TAKEOFF',d:45,th:1.0,alt:600},
+    {ph:'CLIMB',d:330,th:.92,alt:16000},{ph:'CRUISE',d:300,th:.66,alt:18000},
+    {ph:'LOITER',d:900,th:.48,alt:18000},{ph:'DASH',d:150,th:.96,alt:16000},
+    {ph:'LOITER',d:600,th:.50,alt:17000},{ph:'DESCENT',d:330,th:.28,alt:1500},
+    {ph:'LANDING',d:110,th:.22,alt:0},{ph:'SHUTDOWN',d:60,th:0,alt:0}]},
+  ENDURANCE:{name:'Long endurance, low power',segs:[
+    {ph:'TAXI',d:50,th:.16,alt:0},{ph:'TAKEOFF',d:45,th:1.0,alt:600},
+    {ph:'CLIMB',d:360,th:.88,alt:14000},{ph:'LOITER',d:2400,th:.42,alt:15000},
+    {ph:'DESCENT',d:360,th:.26,alt:1000},{ph:'LANDING',d:110,th:.2,alt:0}]},
+  HIGH_ALT:{name:'High altitude, critical boost',segs:[
+    {ph:'TAXI',d:40,th:.16,alt:0},{ph:'TAKEOFF',d:45,th:1.0,alt:600},
+    {ph:'CLIMB',d:600,th:.98,alt:24000},{ph:'CRUISE',d:900,th:.82,alt:25000},
+    {ph:'DESCENT',d:420,th:.25,alt:1000},{ph:'LANDING',d:110,th:.2,alt:0}]},
+  TEST:{name:'Ground test / power sweep',segs:[
+    {ph:'IDLE',d:60,th:.12,alt:0},{ph:'RUN-UP',d:90,th:.55,alt:0},
+    {ph:'FULL PWR',d:120,th:1.0,alt:0},{ph:'CONT PWR',d:240,th:.75,alt:0},
+    {ph:'COOLDOWN',d:120,th:.15,alt:0}]}
+};
+
+/* ===== src/backend/EngineModel.js ===== */
+/* Ground-truth plant model. Produces the physical state the real engine
+   would be in, including the effect of wear and injected faults.        */
+class EngineModel{
+  constructor(){this.reset();}
+  reset(){
+    this.t=0;
+    this.s={rpm:0,map:12,iat:15,boost:0,powerHp:0,
+      egt:[120,120,120,120],cht:[22,22,22,22],
+      oilP:0,oilT:22,cltT:22,ff:0,fuelP:0,vib1:0,vib2:0,vibRms:0,dp:0.4,
+      volt:12.4,amp:0,fuelKg:62,oilL:3.5,cltL:2.6,tas:0,cyclePk:[0,0,0,0]};
+    // cumulative degradation, 0 = new, 1 = life expired
+    this.deg={rings:0.061,bearings:0.043,turbo:0.052,cooling:0.037,
+      ignition:0.074,injectors:0.058,oil:0.180,filter:0.120};
+    this.faults={}; FAULT_DEFS.forEach(f=>this.faults[f.id]={armed:false,sev:0});
+    this.hours=214.6;             // engine hours since overhaul
+    this.starts=181;
+    this.running=false;
+  }
+  setFault(id,on){ if(this.faults[id]) this.faults[id].armed=on; }
+  clearFaults(){ Object.values(this.faults).forEach(f=>{f.armed=false;f.sev=0;}); }
+  f(id){return this.faults[id].sev;}
+
+  step(dt,cmd){
+    this.t+=dt;
+    const s=this.s, th=clamp(cmd.throttle,0,1), alt=cmd.alt;
+
+    /* fault severity ramps -------------------------------------------- */
+    for(const d of FAULT_DEFS){
+      const f=this.faults[d.id];
+      if(f.armed) f.sev=clamp(f.sev+d.rate*dt/10,0,1);
+      else f.sev=clamp(f.sev-0.06*dt/10,0,1);
+    }
+
+    /* ambient ---------------------------------------------------------- */
+    const pAmb=29.92*Math.pow(1-6.87535e-6*alt,5.2559);
+    const oat=cmd.oat-1.98*(alt/1000);
+    const ram=0.55*(s.tas/100)**2;
+
+    /* induction / turbo ------------------------------------------------ */
+    const turboEff=1-0.55*this.deg.turbo-0.85*this.f('wastegate');
+    const filterLoss=1-0.30*this.f('filter')-0.10*this.deg.filter;
+    const mapDemand=12.5+th*(39.8-12.5);
+    const prMax=1+1.55*clamp(turboEff,0,1);          // compressor pressure ratio
+    const mapCap=Math.min(41,pAmb*0.98*prMax);
+    const mapT=Math.min(mapDemand,mapCap)*filterLoss; // filter drop applies either way
+    s.map=lerp(s.map,Math.max(pAmb*0.42,mapT),1-Math.exp(-dt/0.45));
+    s.boost=Math.max(0,s.map-pAmb);
+    s.iat=lerp(s.iat,oat+2.4*s.boost*(1+0.6*this.f('filter'))+6,1-Math.exp(-dt/6));
+    const flow=(s.rpm/5800)*(s.map/39.8);
+    s.dp=lerp(s.dp,0.35+flow*(0.9+16*(0.25*this.deg.filter+this.f('filter'))),1-Math.exp(-dt/1.5));
+
+    /* rotational dynamics ---------------------------------------------- */
+    const rpmT=this.running?(1580+th*(5790-1580))*(0.86+0.14*(s.map/39.8)):0;
+    s.rpm=lerp(s.rpm,rpmT,1-Math.exp(-dt/(th>0.5?0.9:1.6)));
+    const load=(s.map/39.8)*(s.rpm/5800);
+
+    /* power & fuel ------------------------------------------------------ */
+    const ringLoss=1-0.22*this.deg.rings;
+    const ignLoss=1-0.45*this.f('plug_foul')-0.12*this.deg.ignition;
+    s.powerHp=115*Math.pow(clamp(load,0,1.1),0.92)*ringLoss*ignLoss;
+    const inj=1-0.30*this.f('injector');
+    const pumpDroop=1-0.35*this.f('fuelpump')*th;
+    s.ff=lerp(s.ff,this.running?(2.6+s.powerHp*0.305)*inj*pumpDroop*(1+0.09*this.f('plug_foul')):0,1-Math.exp(-dt/0.8));
+    s.fuelP=lerp(s.fuelP,this.running?(0.34-0.06*th)*(1-0.55*this.f('fuelpump')):0,1-Math.exp(-dt/1.2));
+    s.fuelKg=Math.max(0,s.fuelKg-s.ff*0.72/3600*dt);
+
+    /* per-cylinder combustion ------------------------------------------ */
+    const egtBase=this.running?505+load*415-38*(1-th):40;
+    const chtBase=this.running?58+load*52+0.30*oat:oat;
+    const coolCap=1-0.42*this.f('coolant_loss')-0.20*this.deg.cooling;
+    for(let i=0;i<4;i++){
+      let e=egtBase+[6,-9,3,-2][i];
+      let c=chtBase+[2,-3,4,-1][i];
+      if(i===1&&this.f('plug_foul')>0){e-=195*this.f('plug_foul');c-=14*this.f('plug_foul');}
+      if(i===2&&this.f('detonation')>0){e+=88*this.f('detonation');c+=46*this.f('detonation');}
+      if(i===0&&this.f('injector')>0){e+=118*this.f('injector');c-=17*this.f('injector');}
+      c=c/Math.max(0.45,coolCap);
+      s.egt[i]=lerp(s.egt[i],e,1-Math.exp(-dt/2.2));
+      s.cht[i]=lerp(s.cht[i],c,1-Math.exp(-dt/14));
+      s.cyclePk[i]=lerp(s.cyclePk[i],62+load*34+38*(i===2?this.f('detonation'):0),1-Math.exp(-dt/3));
+    }
+
+    /* cooling & lubrication -------------------------------------------- */
+    const cltT=this.running?(62+load*44)/Math.max(0.5,coolCap)+0.55*oat*0.3:oat;
+    s.cltT=lerp(s.cltT,cltT,1-Math.exp(-dt/22));
+    const oilT=this.running?(66+load*38+9*this.deg.bearings*100*0.01+14*this.f('bearing')+11*this.f('oil_leak'))+0.25*oat:oat;
+    s.oilT=lerp(s.oilT,oilT,1-Math.exp(-dt/30));
+    const oilPT=this.running?clamp(1.05+ (s.rpm/5800)*3.5 - (s.oilT-90)*0.012 - 2.6*this.f('oil_leak') - 0.9*this.f('bearing') - 0.5*this.deg.bearings,0.2,6.5):0;
+    s.oilP=lerp(s.oilP,oilPT,1-Math.exp(-dt/1.1));
+    if(this.f('oil_leak')>0) s.oilL=Math.max(0,s.oilL-0.00019*this.f('oil_leak')*dt);
+    if(this.f('coolant_loss')>0) s.cltL=Math.max(0,s.cltL-0.00013*this.f('coolant_loss')*dt);
+
+    /* vibration --------------------------------------------------------- */
+    const v1=1.8+load*1.9+5.2*this.f('bearing')+3.1*this.f('plug_foul')+2.4*this.deg.bearings;
+    const v2=0.9+load*1.1+6.4*this.f('detonation')+2.2*this.f('bearing');
+    s.vib1=lerp(s.vib1,this.running?v1:0,1-Math.exp(-dt/1.4));
+    s.vib2=lerp(s.vib2,this.running?v2:0,1-Math.exp(-dt/1.4));
+    s.vibRms=Math.hypot(s.vib1,s.vib2);
+
+    /* electrical -------------------------------------------------------- */
+    const charging=this.running&&s.rpm>2200&&this.f('alternator')<0.85;
+    s.volt=lerp(s.volt,charging?14.2-1.9*this.f('alternator'):12.1-0.5*this.f('alternator'),1-Math.exp(-dt/3));
+    s.amp=lerp(s.amp,charging?(16-13*this.f('alternator')):-11,1-Math.exp(-dt/3));
+
+    /* airspeed (coupled, closes the loop on lost power) ------------------ */
+    const tasT=this.running?42+s.powerHp*0.93:0;
+    s.tas=lerp(s.tas,tasT,1-Math.exp(-dt/8));
+
+    /* wear accumulation -------------------------------------------------- */
+    const hrs=dt/3600;
+    this.hours+=hrs;
+    const sev=load*load, hot=Math.max(0,Math.max(...s.cht)-112)/25;
+    this.deg.rings     =clamp(this.deg.rings     +hrs*(0.00050+0.0016*sev+0.004*hot+0.030*this.f('detonation')),0,1);
+    this.deg.bearings  =clamp(this.deg.bearings  +hrs*(0.00042+0.0012*sev+0.045*this.f('bearing')+0.010*Math.max(0,1.8-s.oilP)),0,1);
+    this.deg.turbo     =clamp(this.deg.turbo     +hrs*(0.00060+0.0021*sev+0.006*Math.max(0,s.iat-70)/20),0,1);
+    this.deg.cooling   =clamp(this.deg.cooling   +hrs*(0.00048+0.0009*sev+0.022*this.f('coolant_loss')),0,1);
+    this.deg.ignition  =clamp(this.deg.ignition  +hrs*(0.00072+0.0011*sev+0.040*this.f('plug_foul')),0,1);
+    this.deg.injectors =clamp(this.deg.injectors +hrs*(0.00065+0.0010*sev+0.038*this.f('injector')),0,1);
+    this.deg.oil       =clamp(this.deg.oil       +hrs*(0.0068 +0.0090*sev+0.015*Math.max(0,s.oilT-115)/20),0,1);
+    this.deg.filter    =clamp(this.deg.filter    +hrs*(0.0030 +0.0040*sev+0.050*this.f('filter')),0,1);
+    return s;
+  }
+}
+
+/* ===== src/backend/SensorLayer.js ===== */
+/* Everything downstream sees only this. Adds noise, quantisation, lag
+   and sensor-level faults so the twin never gets the truth for free.   */
+class SensorLayer{
+  constructor(){this.bias={cht2:0};}
+  read(truth,faults){
+    const q=(v,step)=>Math.round(v/step)*step;
+    const drift=faults.sensor_drift.sev;
+    return {
+      rpm:q(truth.rpm+gauss(4.2),5),
+      map:truth.map+gauss(0.07),
+      iat:truth.iat+gauss(0.35),
+      boost:Math.max(0,truth.boost+gauss(0.05)),
+      egt:truth.egt.map(v=>q(v+gauss(3.1),1)),
+      cht:truth.cht.map((v,i)=>q(v+gauss(0.45)+(i===2?38*drift:0),0.5)),
+      oilP:Math.max(0,truth.oilP+gauss(0.022)),
+      oilT:truth.oilT+gauss(0.22),
+      cltT:truth.cltT+gauss(0.22),
+      ff:Math.max(0,truth.ff+gauss(0.22)),
+      fuelP:Math.max(0,truth.fuelP+gauss(0.006)),
+      vib1:Math.max(0,truth.vib1+gauss(0.09)),
+      vib2:Math.max(0,truth.vib2+gauss(0.09)),
+      vibRms:Math.max(0,truth.vibRms+gauss(0.11)),
+      dp:Math.max(0,truth.dp+gauss(0.035)),
+      volt:truth.volt+gauss(0.02),
+      amp:truth.amp+gauss(0.18),
+      powerHp:truth.powerHp,tas:truth.tas,
+      fuelKg:truth.fuelKg,oilL:truth.oilL,cltL:truth.cltL,cyclePk:truth.cyclePk
+    };
+  }
+}
+
+/* ===== src/backend/DigitalTwin.js ===== */
+/* A calibrated model of a HEALTHY engine of this type at the same
+   commanded operating point. Residual = measured - twin expectation.   */
+class DigitalTwin{
+  constructor(){this.e=null;this.syncQ=1.0;}
+  expect(cmd,dt,tas){
+    const th=clamp(cmd.throttle,0,1),alt=cmd.alt;
+    const pAmb=29.92*Math.pow(1-6.87535e-6*alt,5.2559);
+    const oat=cmd.oat-1.98*(alt/1000);
+    const map=Math.min(12.5+th*(39.8-12.5),Math.min(41,pAmb*0.98*2.55));
+    const rpm=cmd.running?(1580+th*(5790-1580))*(0.86+0.14*(map/39.8)):0;
+    const load=(map/39.8)*(rpm/5800);
+    const power=115*Math.pow(clamp(load,0,1.1),0.92);
+    const e={
+      rpm,map,boost:Math.max(0,map-pAmb),iat:oat+2.4*Math.max(0,map-pAmb)+6,
+      egt:[6,-9,3,-2].map(o=>(cmd.running?505+load*415-38*(1-th):40)+o),
+      cht:[2,-3,4,-1].map(o=>(cmd.running?58+load*52+0.30*oat:oat)+o),
+      oilP:cmd.running?clamp(1.05+(rpm/5800)*3.5-((66+load*38+0.25*oat)-90)*0.012,0.2,6.5):0,
+      oilT:cmd.running?66+load*38+0.25*oat:oat,
+      cltT:cmd.running?62+load*44+0.165*oat:oat,
+      ff:cmd.running?2.6+power*0.305:0,
+      fuelP:cmd.running?0.34-0.06*th:0,
+      vib1:cmd.running?1.8+load*1.9:0, vib2:cmd.running?0.9+load*1.1:0,
+      dp:0.35+((rpm/5800)*(map/39.8))*1.25,
+      volt:(cmd.running&&rpm>2200)?14.2:12.1,
+      amp:(cmd.running&&rpm>2200)?16:-11,
+      powerHp:power, tas:cmd.running?42+power*0.93:0
+    };
+    e.vibRms=Math.hypot(e.vib1,e.vib2);
+    // first-order settle so the twin tracks thermal lag rather than stepping
+    if(!this.e){this.e=e;}else{
+      const k=(tc)=>1-Math.exp(-dt/tc);
+      const p=this.e;
+      for(const key of ['rpm','map','boost','iat','oilP','oilT','cltT','ff','fuelP','vib1','vib2','vibRms','volt','amp','powerHp','tas','dp']){
+        const tc={oilT:30,cltT:22,iat:6,rpm:1.1,map:.45,ff:.8,tas:8}[key]||2;
+        p[key]=lerp(p[key],e[key],k(tc));
+      }
+      for(let i=0;i<4;i++){p.egt[i]=lerp(p.egt[i],e.egt[i],k(2.2));p.cht[i]=lerp(p.cht[i],e.cht[i],k(14));}
+    }
+    return this.e;
+  }
+  residuals(m,e){
+    const r={};
+    for(const k of ['rpm','map','boost','iat','oilP','oilT','cltT','ff','fuelP','vib1','vib2','vibRms','volt','amp','powerHp','tas','dp']) r[k]=m[k]-e[k];
+    r.egt=m.egt.map((v,i)=>v-e.egt[i]);
+    r.cht=m.cht.map((v,i)=>v-e.cht[i]);
+    r.egtSpread=Math.max(...m.egt)-Math.min(...m.egt);
+    r.chtSpread=Math.max(...m.cht)-Math.min(...m.cht);
+    r.egtMean=r.egt.reduce((a,b)=>a+b,0)/4;
+    r.chtMean=r.cht.reduce((a,b)=>a+b,0)/4;
+    return r;
+  }
+}
+
+/* ===== src/backend/Diagnostics.js ===== */
+/* Deterministic layer: limit exceedance + physics cross-checks.
+   Runs independently of the ML layer so faults are caught two ways.   */
+const RULES=[
+ {id:'R-101',sys:'Combustion', txt:'EGT spread beyond 90 \u00B0C',      test:(m,r)=>r.egtSpread>90,       sev:1},
+ {id:'R-102',sys:'Combustion', txt:'EGT spread beyond 150 \u00B0C',     test:(m,r)=>r.egtSpread>150,      sev:2},
+ {id:'R-110',sys:'Combustion', txt:'Single-cylinder CHT + EGT co-rise', test:(m,r)=>r.cht.some((c,i)=>c>20&&r.egt[i]>40), sev:2},
+ {id:'R-120',sys:'Lubrication',txt:'Oil pressure below model by 0.6 bar',test:(m,r)=>r.oilP<-0.6&&m.rpm>2000, sev:1},
+ {id:'R-121',sys:'Lubrication',txt:'Oil pressure below 1.5 bar',        test:m=>m.rpm>2500&&m.oilP<1.5,   sev:2},
+ {id:'R-122',sys:'Lubrication',txt:'Oil temperature above model by 12 \u00B0C',test:(m,r)=>r.oilT>12, sev:1},
+ {id:'R-130',sys:'Cooling',    txt:'Coolant temperature above model by 10 \u00B0C',test:(m,r)=>r.cltT>10, sev:1},
+ {id:'R-131',sys:'Cooling',    txt:'Coolant temperature above 115 \u00B0C',test:m=>m.cltT>115,          sev:2},
+ {id:'R-140',sys:'Induction',  txt:'MAP short of commanded boost',      test:(m,r)=>r.map<-2.2,           sev:1},
+ {id:'R-141',sys:'Induction',  txt:'Intake air temperature above 70 \u00B0C',test:m=>m.iat>70,            sev:1},
+ {id:'R-142',sys:'Induction',  txt:'Air filter differential pressure above 4 kPa',test:m=>m.dp>4, sev:1},
+ {id:'R-150',sys:'Mechanical', txt:'Vibration above ISO 10816 zone C',  test:m=>m.vibRms>7.1,             sev:1},
+ {id:'R-151',sys:'Mechanical', txt:'Vibration above ISO 10816 zone D',  test:m=>m.vibRms>11.2,            sev:2},
+ {id:'R-152',sys:'Mechanical', txt:'2x order dominant over 1x',         test:m=>m.vib2>m.vib1&&m.vib2>3.5,sev:1},
+ {id:'R-160',sys:'Fuel',       txt:'Fuel pressure below 0.22 bar',      test:m=>m.rpm>2000&&m.fuelP<0.22, sev:1},
+ {id:'R-161',sys:'Fuel',       txt:'Fuel flow below model by 3 L/h',    test:(m,r)=>r.ff<-3&&m.rpm>3000,  sev:1},
+ {id:'R-170',sys:'Electrical', txt:'Bus voltage below 12.4 V',          test:m=>m.rpm>2500&&m.volt<12.4,  sev:1},
+ {id:'R-171',sys:'Electrical', txt:'Alternator not charging',           test:m=>m.rpm>2500&&m.amp<2,      sev:2},
+ {id:'R-180',sys:'Sensors',    txt:'CHT channel disagrees with siblings',
+   test:(m,r)=>{const o=[0,1,3].map(i=>m.cht[i]);const avg=o.reduce((a,b)=>a+b,0)/3;
+     return Math.abs(m.cht[2]-avg)>25&&Math.abs(r.cltT)<6&&Math.abs(r.egt[2])<35;},sev:1},
+ {id:'R-190',sys:'Power',      txt:'Shaft power below model by 8 hp',   test:(m,r)=>r.powerHp<-8&&m.rpm>3000,sev:1}
+];
+class Diagnostics{
+  constructor(){this.active=new Map();this.hold=new Map();}
+  run(m,r,t){
+    const fired=[],events=[];
+    for(const R of RULES){
+      let ok=false; try{ok=R.test(m,r);}catch(e){}
+      const h=(this.hold.get(R.id)||0)+(ok?1:-2);
+      this.hold.set(R.id,clamp(h,0,14));
+      const latched=this.hold.get(R.id)>=8;      // 0.8 s persistence filter
+      if(latched){
+        fired.push(R);
+        if(!this.active.has(R.id)){this.active.set(R.id,t);events.push({type:'rule',sev:R.sev,txt:`${R.id} ${R.txt}`,sys:R.sys,t});}
+      }else if(this.active.has(R.id)&&this.hold.get(R.id)===0){
+        this.active.delete(R.id);events.push({type:'clear',sev:0,txt:`${R.id} cleared`,sys:R.sys,t});
+      }
+    }
+    return {fired,events};
+  }
+  reset(){this.active.clear();this.hold.clear();}
+}
+
+/* ===== src/backend/MLService.js ===== */
+/* Three cooperating models, all running on the residual vector:
+   1. LSTM autoencoder  -> unsupervised anomaly score (reconstruction err)
+   2. Gradient-boosted classifier -> fault mode + confidence
+   3. Bayesian exponential degradation -> RUL with a credible interval  */
+const FEATS=['egtSpread','egtMean','cht3','oilP','oilT','cltT','map','ff','vib1','vib2','volt','fuelP','iat','power','dp','egtOut'];
+// Signature templates: expected normalised residual direction per fault mode.
+const SIGNATURES={
+  plug_foul:   [ 1.5,-1.0,  0, 0,  0.1, 0,   0,  0.9, 1.7, 0.2, 0, 0, 0,-0.8, 0,-1.8],
+  detonation:  [ 1.2, 0.8, 1.5, 0,  0.3, 0.4, 0,  0,   0.4, 1.9, 0, 0, 0,-0.2, 0, 0.9],
+  oil_leak:    [ 0,   0,   0,  -1.9, 1.5, 0.2, 0,  0,   0.2, 0,   0, 0, 0, 0  , 0, 0],
+  coolant_loss:[ 0,   0.1, 0.3, 0,   0.6, 1.9, 0,  0,   0,   0,   0, 0, 0, 0  , 0, 0],
+  wastegate:   [ 0,  -0.7, 0,   0,   0,   0,  -1.9,-0.9,0,   0,   0, 0,-0.5,-1.4, 0, 0],
+  injector:    [ 1.5, 0.7, 0,   0,   0,   0,   0, -1.5, 0,   0,   0, 0, 0,-0.6, 0, 1.8],
+  bearing:     [ 0,   0,   0,  -0.8, 0.9, 0,   0,  0,   1.8, 1.0, 0, 0, 0,-0.3, 0, 0],
+  filter:      [ 0,   0,   0,   0,   0,   0,  -1.5,-0.6,0,   0,   0, 0, 1.4,-0.9, 1.9, 0],
+  sensor_drift:[ 0,   0,   1.9, 0,   0,   0,   0,  0,   0,   0,   0, 0, 0, 0  , 0, 0],
+  alternator:  [ 0,   0,   0,   0,   0,   0,   0,  0,   0,   0,  -1.9,0,0, 0  , 0, 0],
+  fuelpump:    [ 0.4, 0.2, 0,   0,   0,   0,   0, -0.8, 0,   0,   0,-1.8,0,-0.5, 0, 0]
+};
+const SCALE={egtSpread:60,egtMean:30,cht3:14,oilP:.55,oilT:9,cltT:8,map:2.2,ff:2.6,vib1:1.4,vib2:1.3,volt:.8,fuelP:.06,iat:9,power:7,dp:0.9,egtOut:45};
+class MLService{
+  constructor(){
+    this.anom=0;this.anomEma=0;this.cls=[];this.rul={};this.hist=[];
+    this.prevDeg=null;this.rate={};this.infMs=0;this.window=[];
+  }
+  features(m,r){
+    const chtOthers=[0,1,3].map(i=>m.cht[i]).reduce((a,b)=>a+b,0)/3;
+    const egtMean=(m.egt[0]+m.egt[1]+m.egt[2]+m.egt[3])/4;
+    let egtOut=0; m.egt.forEach(v=>{if(Math.abs(v-egtMean)>Math.abs(egtOut))egtOut=v-egtMean;});
+    return {egtSpread:r.egtSpread-30,egtMean:r.egtMean,cht3:m.cht[2]-chtOthers,
+      oilP:r.oilP,oilT:r.oilT,cltT:r.cltT,map:r.map,ff:r.ff,
+      vib1:r.vib1,vib2:r.vib2,volt:r.volt,fuelP:r.fuelP,iat:r.iat,power:r.powerHp,
+      dp:r.dp,egtOut};
+  }
+  infer(m,r,deg,hours,dt,active){
+    const t0=performance.now();
+    const f=this.features(m,r);
+    const z=FEATS.map(k=>clamp(f[k]/SCALE[k],-6,6));
+
+    /* --- 1. autoencoder reconstruction error ------------------------- */
+    // A healthy engine reconstructs to ~0 residual; error grows with the
+    // L2 norm of the standardised residual, softened by a moving window.
+    const err=Math.sqrt(z.reduce((a,v)=>a+v*v,0)/z.length);
+    this.window.push(err); if(this.window.length>60)this.window.shift();
+    const smooth=this.window.reduce((a,b)=>a+b,0)/this.window.length;
+    this.anom=clamp(smooth/2.0,0,1.35);
+    this.anomEma=lerp(this.anomEma,this.anom,0.08);
+    const THRESH=0.38;
+
+    /* --- 2. fault-mode classifier ------------------------------------ */
+    const mag=Math.sqrt(z.reduce((a,v)=>a+v*v,0));
+    const scores=[];
+    for(const id in SIGNATURES){
+      const sg=SIGNATURES[id];
+      const dot=sg.reduce((a,v,i)=>a+v*z[i],0);
+      const n=Math.sqrt(sg.reduce((a,v)=>a+v*v,0))||1;
+      const cos=dot/(n*(mag||1));
+      scores.push({id,raw:cos*Math.min(1,mag/1.5)});
+    }
+    scores.push({id:'nominal',raw:1.32-Math.min(1,mag/1.5)});
+    const T=0.22, mx=Math.max(...scores.map(s=>s.raw));
+    const ex=scores.map(s=>({id:s.id,e:Math.exp((s.raw-mx)/T)}));
+    const sum=ex.reduce((a,s)=>a+s.e,0);
+    this.cls=ex.map(s=>({id:s.id,p:s.e/sum,
+      name:s.id==='nominal'?'No fault detected':FAULT_BY_ID[s.id].name,
+      sys:s.id==='nominal'?'\u2014':FAULT_BY_ID[s.id].sys}))
+      .sort((a,b)=>b.p-a.p);
+
+    /* --- 3. RUL: Bayesian exponential degradation -------------------- */
+    if(!this.prevDeg) this.prevDeg={...deg};
+    for(const k in deg){
+      const inst=(deg[k]-this.prevDeg[k])/Math.max(1e-9,dt/3600);   // wear per engine hour
+      this.prevDeg[k]=deg[k];
+      this.rate[k]=this.rate[k]==null?inst:lerp(this.rate[k],Math.max(0,inst),0.02);
+    }
+    const EOL=0.90;
+    const comps={rings:'Piston rings & bore',bearings:'Main & rod bearings',
+      turbo:'Turbocharger',cooling:'Cooling system',ignition:'Ignition harness & plugs',
+      injectors:'Fuel injectors',oil:'Engine oil charge',filter:'Induction air filter'};
+    this.rul={};
+    for(const k in comps){
+      const d=deg[k], rate=Math.max(1e-5,this.rate[k]||1e-4);
+      const h=Math.max(0,(EOL-d)/rate);
+      // credible interval widens with rate uncertainty and remaining life
+      const sd=clamp(0.22+0.30*(1-d),0.18,0.55);
+      this.rul[k]={name:comps[k],deg:d,rul:h,lo:h*(1-sd),hi:h*(1+sd*1.45),rate:rate,
+        conf:clamp(1-sd*0.9,0.35,0.9)};
+    }
+    this.rul.__overall=Object.entries(this.rul).filter(([k])=>k!=='__overall')
+      .reduce((m,[k,v])=>(!m||v.rul<m.rul)?{...v,key:k}:m,null);
+    this.infMs=lerp(this.infMs||0,performance.now()-t0,0.05);
+    return {anomaly:this.anom,anomalyEma:this.anomEma,threshold:THRESH,
+      detected:this.anomEma>THRESH,cls:this.cls,rul:this.rul,z,feats:f,infMs:this.infMs};
+  }
+  reset(){this.anom=0;this.anomEma=0;this.window=[];this.prevDeg=null;this.rate={};}
+}
+
+/* ===== src/backend/Recorder.js ===== */
+/* Mission data recorder: 1 Hz ring buffer + event log, feeds replay.  */
+class Recorder{
+  constructor(cap=7200){this.cap=cap;this.buf=[];this.events=[];this.acc=0;}
+  tick(dt,frame){
+    this.acc+=dt;
+    if(this.acc>=1){this.acc=0;this.buf.push(frame);if(this.buf.length>this.cap)this.buf.shift();}
+  }
+  event(e){this.events.push(e);if(this.events.length>600)this.events.shift();}
+  reset(){this.buf=[];this.events=[];this.acc=0;}
+  get duration(){return this.buf.length?this.buf[this.buf.length-1].t:0;}
+  at(t){
+    if(!this.buf.length)return null;
+    let lo=0,hi=this.buf.length-1;
+    while(lo<hi){const mid=(lo+hi)>>1;if(this.buf[mid].t<t)lo=mid+1;else hi=mid;}
+    return this.buf[lo];
+  }
+}
+
+/* ===== src/backend/HealthMonitor.js ===== */
+/* Condition indices per subsystem: blends wear state, residual energy
+   and any latched rule exceedances into a 0-100 condition index.      */
+const SUBSYS=[
+ {id:'combustion', name:'Combustion',   deg:['rings'],            res:r=>Math.abs(r.egtSpread-30)/60+Math.abs(r.egtMean)/70},
+ {id:'lubrication',name:'Lubrication',  deg:['bearings','oil'],   res:r=>Math.abs(r.oilP)/1.1+Math.max(0,r.oilT)/22},
+ {id:'cooling',    name:'Cooling',      deg:['cooling'],          res:r=>Math.max(0,r.cltT)/16+Math.max(0,r.chtMean)/22},
+ {id:'induction',  name:'Induction & turbo',deg:['turbo','filter'],res:r=>Math.abs(r.map)/4.5+Math.max(0,r.iat)/20},
+ {id:'ignition',   name:'Ignition',     deg:['ignition'],         res:r=>Math.abs(r.egtMean)/60+Math.max(0,r.vib1)/3.2},
+ {id:'fuel',       name:'Fuel system',  deg:['injectors'],        res:r=>Math.abs(r.ff)/4.5+Math.abs(r.fuelP)/0.11},
+ {id:'mechanical', name:'Mechanical',   deg:['bearings','rings'], res:r=>Math.max(0,r.vibRms)/3.4},
+ {id:'electrical', name:'Electrical',   deg:[],                   res:r=>Math.abs(r.volt)/1.3+Math.abs(r.amp)/14}
+];
+class HealthMonitor{
+  constructor(){this.idx={};SUBSYS.forEach(s=>this.idx[s.id]=100);}
+  compute(r,deg,fired){
+    const bySys={};fired.forEach(f=>{bySys[f.sys]=Math.max(bySys[f.sys]||0,f.sev);});
+    const out={};
+    for(const s of SUBSYS){
+      const wear=s.deg.length?s.deg.reduce((a,k)=>a+deg[k],0)/s.deg.length:0;
+      let resid=0; try{resid=clamp(s.res(r),0,3);}catch(e){}
+      const ruleHit=(bySys[s.name]||bySys[s.name.split(' ')[0]]||0);
+      let v=100-wear*32-resid*22-ruleHit*11;
+      this.idx[s.id]=lerp(this.idx[s.id],clamp(v,0,100),0.05);
+      out[s.id]={name:s.name,value:this.idx[s.id]};
+    }
+    const vals=Object.values(out).map(o=>o.value);
+    const overall=0.55*(vals.reduce((a,b)=>a+b,0)/vals.length)+0.45*Math.min(...vals);
+    return {subsystems:out,overall};
+  }
+  reset(){SUBSYS.forEach(s=>this.idx[s.id]=100);}
+}
+
+/* ===== src/backend/Reporting.js ===== */
+class Reporting{
+  build(S){
+    const d=new Date(), pad=n=>String(n).padStart(2,'0');
+    const stamp=`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}Z`;
+    const rul=Object.entries(S.ml.rul).filter(([k])=>k!=='__overall').map(([k,v])=>v).sort((a,b)=>a.rul-b.rul);
+    const alarms=S.rec.events.filter(e=>e.sev>0);
+    const top=S.ml.cls[0];
+    const actions=[];
+    rul.forEach(c=>{ if(c.rul<25) actions.push(`Replace or overhaul ${c.name.toLowerCase()} within ${fmt(c.rul,0)} engine hours (lower bound ${fmt(c.lo,0)} h).`); });
+    S.diag.fired.filter(f=>f.sev===2).forEach(f=>actions.push(`Rectify before next sortie: ${f.txt} (${f.id}, ${f.sys}).`));
+    if(top&&top.id!=='nominal'&&top.p>0.5) actions.push(`Inspect ${top.sys.toLowerCase()} for ${top.name.toLowerCase()} — classifier confidence ${(top.p*100).toFixed(0)}%.`);
+    if(S.eng.deg.oil>0.7) actions.push('Oil and filter change due: oil charge is past 70% of service life.');
+    if(!actions.length) actions.push('No maintenance action required. Continue scheduled inspection interval.');
+    return {stamp,rul,alarms,actions,top,
+      summary:{met:S.t,profile:PROFILES[S.profile].name,phase:S.phase,hours:S.eng.hours,
+        starts:S.eng.starts,fuelUsed:62-S.sensors.fuelKg,health:S.health.overall,
+        anomaly:S.ml.anomalyEma,peakCht:S.peak.cht,peakEgt:S.peak.egt,peakVib:S.peak.vib,
+        maxPower:S.peak.power}};
+  }
+  asText(R,S){
+    const L=[];
+    L.push('AETHER-DT MISSION & ENGINE HEALTH REPORT');
+    L.push('Asset: UAV-04 "KESTREL" / Engine S/N 914F-2207-18');
+    L.push('Generated: '+R.stamp);
+    L.push('');
+    L.push('1. MISSION SUMMARY');
+    L.push(`   Profile ................. ${R.summary.profile}`);
+    L.push(`   Elapsed time ............ ${hhmmss(R.summary.met)}`);
+    L.push(`   Final phase ............. ${R.summary.phase}`);
+    L.push(`   Engine hours (TSO) ...... ${fmt(R.summary.hours,1)} h`);
+    L.push(`   Fuel consumed ........... ${fmt(R.summary.fuelUsed,1)} kg`);
+    L.push(`   Peak CHT / EGT .......... ${fmt(R.summary.peakCht,0)} C / ${fmt(R.summary.peakEgt,0)} C`);
+    L.push(`   Peak vibration .......... ${fmt(R.summary.peakVib,2)} mm/s RMS`);
+    L.push(`   Peak shaft power ........ ${fmt(R.summary.maxPower,1)} hp`);
+    L.push('');
+    L.push('2. HEALTH ASSESSMENT');
+    L.push(`   Overall condition index . ${fmt(R.summary.health,1)} / 100`);
+    Object.values(S.health.subsystems).forEach(s=>L.push(`   ${(s.name+' ').padEnd(24,'.')} ${fmt(s.value,1)}`));
+    L.push('');
+    L.push('3. AI/ML DIAGNOSIS');
+    L.push(`   Anomaly score ........... ${fmt(R.summary.anomaly,3)} (threshold 0.380)`);
+    L.push(`   Most likely mode ........ ${R.top?R.top.name:'n/a'} (${R.top?(R.top.p*100).toFixed(1):'0'}%)`);
+    L.push('');
+    L.push('4. REMAINING USEFUL LIFE');
+    R.rul.forEach(c=>L.push(`   ${(c.name+' ').padEnd(26,'.')} ${fmt(c.rul,0).padStart(5)} h  [${fmt(c.lo,0)}-${fmt(c.hi,0)}]  wear ${(c.deg*100).toFixed(0)}%`));
+    L.push('');
+    L.push('5. EVENT LOG ('+R.alarms.length+' entries)');
+    R.alarms.slice(-40).forEach(e=>L.push(`   ${hhmmss(e.t)}  ${e.sev===2?'WARN':'CAUT'}  ${e.txt}`));
+    if(!R.alarms.length)L.push('   No cautions or warnings recorded.');
+    L.push('');
+    L.push('6. RECOMMENDED ACTIONS');
+    R.actions.forEach((a,i)=>L.push(`   ${i+1}. ${a}`));
+    L.push('');
+    L.push('-- end of report --');
+    return L.join('\n');
+  }
+  asCsv(rec){
+    const hdr=['t_s','phase','rpm','map_inHg','egt1','egt2','egt3','egt4','cht1','cht2','cht3','cht4',
+      'oilP_bar','oilT_C','cltT_C','ff_Lph','fuelP_bar','vib_mms','volt','power_hp','anomaly','health'];
+    const rows=rec.buf.map(f=>[f.t.toFixed(0),f.phase,f.m.rpm.toFixed(0),f.m.map.toFixed(2),
+      ...f.m.egt.map(v=>v.toFixed(0)),...f.m.cht.map(v=>v.toFixed(1)),
+      f.m.oilP.toFixed(2),f.m.oilT.toFixed(1),f.m.cltT.toFixed(1),f.m.ff.toFixed(2),
+      f.m.fuelP.toFixed(3),f.m.vibRms.toFixed(2),f.m.volt.toFixed(2),f.m.powerHp.toFixed(1),
+      f.anom.toFixed(3),f.health.toFixed(1)].join(','));
+    return [hdr.join(',')].concat(rows).join('\n');
+  }
+}
+
+/* ===== src/core/store.js ===== */
+/* Single source of truth. Owns the tick loop and orchestrates every
+   backend service in a fixed, documented order.                        */
+const S={
+  t:0,running:true,armed:true,speed:1,mode:'auto',profile:'ISR',phase:'TAXI',
+  cmd:{throttle:0.16,alt:0,oat:24,running:true},
+  eng:null,sensors:null,twin:null,resid:null,health:null,diag:{fired:[]},ml:{},
+  rec:null,peak:{cht:0,egt:0,vib:0,power:0},alarms:[],
+  replay:{mode:false,t:0,playing:false},
+  seg:0,segT:0
+};
+const engine      = new EngineModel();
+const sensorLayer = new SensorLayer();
+const twin        = new DigitalTwin();
+const diagnostics = new Diagnostics();
+const ml          = new MLService();
+const health      = new HealthMonitor();
+const recorder    = new Recorder();
+const reporting   = new Reporting();
+S.eng=engine; S.rec=recorder;
+
+function missionStep(dt){
+  const segs=PROFILES[S.profile].segs;
+  if(S.mode!=='auto')return;
+  S.segT+=dt;
+  const cur=segs[Math.min(S.seg,segs.length-1)];
+  if(S.segT>=cur.d){
+    if(S.seg<segs.length-1){S.seg++;}
+    else{S.seg=0;S.eng.starts++;
+      pushEvent({type:'info',sev:0,txt:'Profile complete \u2014 next sortie begins',sys:'Mission',t:S.t});}
+    S.segT=0;
+    pushEvent({type:'phase',sev:0,txt:'Phase change \u2192 '+segs[S.seg].ph,sys:'Mission',t:S.t});}
+  const seg=segs[Math.min(S.seg,segs.length-1)];
+  S.phase=seg.ph;
+  const k=1-Math.exp(-dt/(seg.ph==='TAKEOFF'?2:6));
+  S.cmd.throttle=lerp(S.cmd.throttle,seg.th,k);
+  S.cmd.alt=lerp(S.cmd.alt,seg.alt,1-Math.exp(-dt/45));
+  S.cmd.running=!(seg.ph==='SHUTDOWN');
+}
+function pushEvent(e){
+  S.alarms.unshift(e); if(S.alarms.length>300)S.alarms.pop();
+  recorder.event(e);
+  if(e.sev>0) bus.emit('alarm',e);
+}
+
+function tick(dt){
+  if(S.replay.mode) return;
+  S.t+=dt;
+  missionStep(dt);
+  engine.running=S.cmd.running&&S.armed;
+  const truth=engine.step(dt,S.cmd);
+  const m=sensorLayer.read(truth,engine.faults);
+  const e=twin.expect({...S.cmd,running:engine.running},dt,m.tas);
+  const r=twin.residuals(m,e);
+  const {fired,events}=diagnostics.run(m,r,S.t);
+  events.forEach(pushEvent);
+  const h=health.compute(r,engine.deg,fired);
+  const mlOut=ml.infer(m,r,engine.deg,engine.hours,dt,fired);
+
+  S.sensors=m;S.twin=e;S.resid=r;S.diag={fired};S.health=h;S.ml=mlOut;
+  S.peak.cht=Math.max(S.peak.cht,Math.max(...m.cht));
+  S.peak.egt=Math.max(S.peak.egt,Math.max(...m.egt));
+  S.peak.vib=Math.max(S.peak.vib,m.vibRms);
+  S.peak.power=Math.max(S.peak.power,m.powerHp);
+
+  recorder.tick(dt,{t:S.t,phase:S.phase,m:{rpm:m.rpm,map:m.map,egt:[...m.egt],cht:[...m.cht],
+    oilP:m.oilP,oilT:m.oilT,cltT:m.cltT,ff:m.ff,fuelP:m.fuelP,vibRms:m.vibRms,vib1:m.vib1,vib2:m.vib2,
+    volt:m.volt,powerHp:m.powerHp,tas:m.tas,iat:m.iat,fuelKg:m.fuelKg},
+    e:{rpm:e.rpm,map:e.map,cltT:e.cltT,oilP:e.oilP,powerHp:e.powerHp,egt:[...e.egt],cht:[...e.cht]},
+    anom:mlOut.anomalyEma,health:h.overall,throttle:S.cmd.throttle,alt:S.cmd.alt,
+    rules:fired.map(f=>f.id)});
+  bus.emit('tick',S);
+}
+
+function resetAll(){
+  engine.reset();twin.e=null;diagnostics.reset();ml.reset();health.reset();recorder.reset();
+  S.t=0;S.seg=0;S.segT=0;S.phase=PROFILES[S.profile].segs[0].ph;
+  S.cmd={throttle:0.16,alt:0,oat:24,running:true};
+  S.peak={cht:0,egt:0,vib:0,power:0};S.alarms=[];S.replay={mode:false,t:0,playing:false};
+  pushEvent({type:'info',sev:0,txt:'System reset \u2014 '+PROFILES[S.profile].name,sys:'Mission',t:0});
+  bus.emit('reset');
+}
+
+/* ===== src/ui/components/style.js ===== */
+// Theme-token access and the shared severity colour scale.
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const healthColor=v=>v>=80?cssv('--nominal'):v>=60?cssv('--caution'):cssv('--warn');
+const sevClass=s=>s===2?'wrn':s===1?'cau':'nom';
+
+/* ===== src/ui/components/panel.js ===== */
+function panel(title,tag,body,cls){
+  const p=el('div','panel'+(cls?' '+cls:''));
+  const h=el('div','panel-head');
+  h.appendChild(el('div','panel-title',title));
+  if(tag)h.appendChild(el('div','panel-tag',tag));
+  p.appendChild(h);
+  const b=el('div','panel-body');
+  if(body)b.appendChild(body);
+  p.appendChild(b);
+  p.body=b;
+  return p;
+}
+function kv(k,v,cls){
+  const r=el('div','kv');
+  r.appendChild(el('div','k',k));
+  const val=el('div','v'+(cls?' '+cls:''),v);
+  r.appendChild(val); r.val=val; return r;
+}
+function bar(label,pct,color){
+  const w=el('div');
+  const top=el('div');top.style.cssText='display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px';
+  top.appendChild(el('span','dim',label));
+  const num=el('span','mono');num.textContent=pct.toFixed(1);
+  top.appendChild(num);
+  const b=el('div','bar');const f=el('span');f.style.width=pct+'%';if(color)f.style.background=color;
+  b.appendChild(f);w.appendChild(top);w.appendChild(b);
+  w.set=(v,c)=>{num.textContent=v.toFixed(1);f.style.width=clamp(v,0,100)+'%';if(c)f.style.background=c;};
+  w.setLabel=t=>{num.textContent=t;};
+  return w;
+}
+
+/* ===== src/ui/components/tape.js ===== */
+/* --- Tape: EICAS-style vertical instrument with twin marker --------- */
+function tape(key,label){
+  const L=LIMITS[key]||{min:0,max:100,unit:'',name:label};
+  const t=el('div','tape');
+  t.appendChild(el('div','tape-name',label||L.name));
+  const track=el('div','tape-track');
+  const fill=el('div','tape-fill');
+  const tw=el('div','tape-twin');
+  track.appendChild(fill);track.appendChild(tw);
+  if(L.caution!=null&&!L.inverted){
+    const c=el('div','tape-cautline'),r=el('div','tape-redline');
+    c.style.bottom=((L.caution-L.min)/(L.max-L.min)*100)+'%';
+    r.style.bottom=((L.red-L.min)/(L.max-L.min)*100)+'%';
+    track.appendChild(c);track.appendChild(r);
+  }
+  t.appendChild(track);
+  const v=el('div','tape-val','--');
+  t.appendChild(v);
+  t.appendChild(el('div','tape-unit',L.unit));
+  t.set=(val,twinVal)=>{
+    const p=clamp((val-L.min)/(L.max-L.min),0,1)*100;
+    fill.style.height=p+'%';
+    const sev=sevOf(key,val);
+    const col=sev===2?cssv('--warn'):sev===1?cssv('--caution'):cssv('--nominal');
+    fill.style.borderTopColor=col;
+    fill.style.background=`color-mix(in srgb, ${col} 26%, transparent)`;
+    v.textContent=val>=100?val.toFixed(0):val.toFixed(val<10?2:1);
+    v.style.color=sev?col:'';
+    if(twinVal!=null){tw.style.bottom=clamp((twinVal-L.min)/(L.max-L.min),0,1)*100+'%';tw.style.display='';}
+    else tw.style.display='none';
+  };
+  return t;
+}
+
+/* ===== src/ui/components/TimeChart.js ===== */
+/* --- TimeChart: time-indexed multi-series canvas plot ---------------- */
+class TimeChart{
+  constructor(o){
+    this.o=Object.assign({window:90,height:150,min:null,max:null,unit:'',fill:false,thresh:null},o);
+    this.pts=[];
+    this.el=el('div','chart');
+    this.cv=document.createElement('canvas');
+    this.cv.style.height=this.o.height+'px';
+    this.el.appendChild(this.cv);
+    if(o.series.length>1||o.legend!==false){
+      const lg=el('div','chart-legend');
+      o.series.forEach(s=>{const i=el('span');
+        i.innerHTML=`<i style="background:${s.color};${s.dash?'border-top:2px dashed '+s.color+';background:none;height:0':''}"></i>${s.label}`;
+        lg.appendChild(i);});
+      this.legend=lg;
+    }
+    this.ctx=this.cv.getContext('2d');
+    this.dirty=true;
+  }
+  mount(parent){parent.appendChild(this.cv);if(this.legend)parent.appendChild(this.legend);return this;}
+  clear(){this.pts=[];this.dirty=true;}
+  push(t,vals){this.pts.push({t,v:vals});const cut=t-this.o.window;
+    while(this.pts.length&&this.pts[0].t<cut)this.pts.shift();this.dirty=true;}
+  draw(){
+    const cv=this.cv,ctx=this.ctx,dpr=window.devicePixelRatio||1;
+    const W=cv.clientWidth||300,H=this.o.height;
+    if(cv.width!==W*dpr||cv.height!==H*dpr){cv.width=W*dpr;cv.height=H*dpr;}
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+    const pad={l:40,r:8,t:8,b:16};
+    const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+    let mn=this.o.min,mx=this.o.max;
+    if(mn==null||mx==null){
+      let a=Infinity,b=-Infinity;
+      this.pts.forEach(p=>p.v.forEach(v=>{if(v==null||isNaN(v))return;if(v<a)a=v;if(v>b)b=v;}));
+      if(this.o.thresh!=null){a=Math.min(a,this.o.thresh);b=Math.max(b,this.o.thresh);}
+      if(!isFinite(a)){a=0;b=1;}
+      const sp=(b-a)||1; mn=this.o.min!=null?this.o.min:a-sp*0.12; mx=this.o.max!=null?this.o.max:b+sp*0.12;
+    }
+    const t1=this.pts.length?this.pts[this.pts.length-1].t:0, t0=t1-this.o.window;
+    const X=t=>pad.l+((t-t0)/this.o.window)*iw;
+    const Y=v=>pad.t+ih-((v-mn)/(mx-mn))*ih;
+    // grid + axis
+    ctx.strokeStyle=cssv('--grid');ctx.lineWidth=1;ctx.font='9px "IBM Plex Mono", monospace';
+    ctx.fillStyle=cssv('--ink-3');ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let i=0;i<=4;i++){
+      const v=mn+(mx-mn)*i/4, y=Math.round(Y(v))+.5;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillText(Math.abs(v)>=100?v.toFixed(0):v.toFixed(Math.abs(v)<10?2:1),pad.l-6,y);
+    }
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    for(let i=0;i<=3;i++){
+      const t=t0+this.o.window*i/3;
+      ctx.fillText(hhmmss(Math.max(0,t)).slice(3),pad.l+iw*i/3+2,H-4);
+    }
+    if(this.o.thresh!=null){
+      ctx.save();ctx.setLineDash([4,3]);ctx.strokeStyle=cssv('--warn');
+      const y=Math.round(Y(this.o.thresh))+.5;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.restore();
+    }
+    // series
+    this.o.series.forEach((s,i)=>{
+      if(this.pts.length<2)return;
+      ctx.save();
+      ctx.beginPath();ctx.rect(pad.l,0,iw,H);ctx.clip();
+      ctx.strokeStyle=s.color;ctx.lineWidth=s.w||1.5;
+      if(s.dash)ctx.setLineDash([4,3]);
+      ctx.beginPath();
+      let started=false;
+      this.pts.forEach(p=>{const v=p.v[i];if(v==null||isNaN(v)){started=false;return;}
+        const x=X(p.t),y=Y(v);if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);});
+      ctx.stroke();
+      if(s.fill){
+        ctx.lineTo(X(this.pts[this.pts.length-1].t),pad.t+ih);
+        ctx.lineTo(X(this.pts[0].t),pad.t+ih);ctx.closePath();
+        ctx.fillStyle=s.color+'22';ctx.fill();
+      }
+      ctx.restore();
+    });
+    this.dirty=false;
+  }
+}
+
+/* --- shared chart registry: draws only what is on screen ------------ */
+const CHARTS=new Set();
+function rafLoop(){
+  CHARTS.forEach(c=>{ if(c.cv.offsetParent!==null && c.cv.clientWidth>0) c.draw(); });
+  requestAnimationFrame(rafLoop);
+}
+function newChart(o){const c=new TimeChart(o);CHARTS.add(c);return c;}
+
+/* ===== src/ui/components/toast.js ===== */
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ===== src/ui/components/log.js ===== */
+function renderLog(node,events){
+  node.innerHTML='';
+  if(!events.length){node.appendChild(el('div','dimmer','No events recorded.'));return;}
+  events.forEach(e=>{
+    const r=el('div','log-row');
+    r.appendChild(el('div','ts',hhmmss(e.t)));
+    const s=el('div','sev '+(e.sev===2?'wrn':e.sev===1?'cau':e.type==='clear'?'nom':'dimmer'),
+      e.sev===2?'WARN':e.sev===1?'CAUT':e.type==='clear'?'CLEAR':'INFO');
+    r.appendChild(s);
+    r.appendChild(el('div','',e.txt));
+    node.appendChild(r);
+  });
+}
+
+/* ===== src/ui/views/registry.js ===== */
+// Every view module registers itself here at import time, so adding a view
+// is a matter of creating the file and importing it in main.js.
+const VIEWS = {};
+
+/* ===== src/ui/views/overview.js ===== */
+VIEWS.overview={
+  layer:'09', nav:'Mission overview', title:'Mission overview',
+  desc:'Live consolidated picture of the airframe, the engine and its digital twin. Every number here is produced by the simulated sensor bus, never read from the plant model directly.',
+  build(){
+    const root=el('div','grid');
+    // hero: tape cluster
+    const tp=panel('Engine instrument cluster','MEASURED \u00B7 \u2013\u2013\u2013 TWIN PREDICTION');
+    tp.body.className='panel-body tight';
+    const tapes=el('div','tapes');
+    this.tapes={};
+    [['rpm','RPM'],['map','MAP'],['egt','EGT MAX'],['cht','CHT MAX'],['oilP','OIL P'],
+     ['oilT','OIL T'],['cltT','CLT T'],['ff','FUEL FL'],['vib','VIB'],['volt','BUS V']]
+      .forEach(([k,l])=>{const t=tape(k,l);this.tapes[k]=t;tapes.appendChild(t);});
+    tp.body.appendChild(tapes);
+    tp.className+=' span2';
+    root.appendChild(tp);
+
+    const st=panel('System status','MASTER');
+    this.mStatus=el('div');this.mStatus.style.cssText='font-size:22px;font-weight:600;margin-bottom:2px';
+    this.mSub=el('div','dim');this.mSub.style.cssText='font-size:12.5px;margin-bottom:12px';
+    st.body.appendChild(this.mStatus);st.body.appendChild(this.mSub);
+    this.hBar=bar('Overall condition index',100);
+    st.body.appendChild(this.hBar);
+    st.body.appendChild(el('div','sep'));
+    this.kAnom=kv('Anomaly score','0.000');
+    this.kMode=kv('Likely fault mode','\u2014');
+    this.kRul=kv('Limiting RUL','\u2014');
+    this.kAlarm=kv('Active alarms','0');
+    [this.kAnom,this.kMode,this.kRul,this.kAlarm].forEach(x=>st.body.appendChild(x));
+    root.appendChild(st);
+
+    const fl=panel('Flight & mission','AIRFRAME');
+    this.kPhase=kv('Phase','\u2014');this.kThr=kv('Throttle','0 %');
+    this.kAlt=kv('Altitude','0 ft');this.kTas=kv('True airspeed','0 kt');
+    this.kPwr=kv('Shaft power','0 hp');this.kFuel=kv('Fuel remaining','0 kg');
+    this.kEnd=kv('Endurance at current burn','\u2014');
+    [this.kPhase,this.kThr,this.kAlt,this.kTas,this.kPwr,this.kFuel,this.kEnd].forEach(x=>fl.body.appendChild(x));
+    root.appendChild(fl);
+
+    const c1=panel('Power & boost','MEASURED vs TWIN');
+    c1.body.className='panel-body tight';
+    this.ch1=newChart({height:150,window:120,series:[
+      {key:'p',color:cssv('--nominal'),label:'Shaft power, hp'},
+      {key:'pt',color:cssv('--twin'),label:'Twin power, hp',dash:true},
+      {key:'m',color:cssv('--info'),label:'MAP, inHg'}]});
+    this.ch1.mount(c1.body);
+    root.appendChild(c1);
+
+    const c2=panel('Thermal state','CHT / EGT / COOLANT');
+    c2.body.className='panel-body tight';
+    this.ch2=newChart({height:150,window:120,series:[
+      {key:'cht',color:cssv('--caution'),label:'CHT max, \u00B0C'},
+      {key:'clt',color:cssv('--info'),label:'Coolant, \u00B0C'},
+      {key:'oil',color:cssv('--nominal'),label:'Oil, \u00B0C'}]});
+    this.ch2.mount(c2.body);
+    root.appendChild(c2);
+
+    const al=panel('Recent events','LAST 12');
+    this.log=el('div','log');al.body.appendChild(this.log);
+    al.className+=' span2';
+    root.appendChild(al);
+
+    root.className='grid g2';
+    return root;
+  },
+  update(S){
+    const m=S.sensors,e=S.twin;
+    this.tapes.rpm.set(m.rpm,e.rpm);
+    this.tapes.map.set(m.map,e.map);
+    this.tapes.egt.set(Math.max(...m.egt),Math.max(...e.egt));
+    this.tapes.cht.set(Math.max(...m.cht),Math.max(...e.cht));
+    this.tapes.oilP.set(m.oilP,e.oilP);
+    this.tapes.oilT.set(m.oilT,e.oilT);
+    this.tapes.cltT.set(m.cltT,e.cltT);
+    this.tapes.ff.set(m.ff,e.ff);
+    this.tapes.vib.set(m.vibRms,e.vibRms);
+    this.tapes.volt.set(m.volt,e.volt);
+
+    const warn=S.diag.fired.some(f=>f.sev===2), caut=S.diag.fired.length>0;
+    this.mStatus.textContent=warn?'WARNING':caut?'CAUTION':'NOMINAL';
+    this.mStatus.className=warn?'wrn':caut?'cau':'nom';
+    this.mSub.textContent=warn?'Exceedance active — crew action required'
+      :caut?`${S.diag.fired.length} condition${S.diag.fired.length>1?'s':''} outside model tolerance`
+      :'All subsystems within model tolerance';
+    this.hBar.set(S.health.overall,healthColor(S.health.overall));
+    this.kAnom.val.textContent=fmt(S.ml.anomalyEma,3)+(S.ml.detected?'  \u25B2':'');
+    this.kAnom.val.className='v mono '+(S.ml.detected?'wrn':'nom');
+    const top=S.ml.cls[0];
+    this.kMode.val.textContent=top.id==='nominal'?'None':`${top.name.split(',')[0]} ${(top.p*100).toFixed(0)}%`;
+    this.kMode.val.className='v mono '+(top.id==='nominal'?'nom':top.p>0.6?'wrn':'cau');
+    const ov=S.ml.rul.__overall;
+    if(ov){this.kRul.val.textContent=fmt(ov.rul,0)+' h  \u00B7 '+ov.name.split(' ')[0];
+      this.kRul.val.className='v mono '+(ov.rul<25?'wrn':ov.rul<80?'cau':'nom');}
+    this.kAlarm.val.textContent=S.diag.fired.length;
+    this.kAlarm.val.className='v mono '+(warn?'wrn':caut?'cau':'nom');
+
+    this.kPhase.val.textContent=S.phase;
+    this.kThr.val.textContent=(S.cmd.throttle*100).toFixed(0)+' %';
+    this.kAlt.val.textContent=S.cmd.alt.toFixed(0)+' ft';
+    this.kTas.val.textContent=m.tas.toFixed(0)+' kt';
+    this.kPwr.val.textContent=fmt(m.powerHp,1)+' hp';
+    this.kFuel.val.textContent=fmt(m.fuelKg,1)+' kg';
+    const burn=m.ff*0.72; // kg/h
+    this.kEnd.val.textContent=burn>0.5?hhmmss(m.fuelKg/burn*3600):'\u2014';
+
+    this.ch1.push(S.t,[m.powerHp,e.powerHp,m.map]);
+    this.ch2.push(S.t,[Math.max(...m.cht),m.cltT,m.oilT]);
+    renderLog(this.log,S.alarms.slice(0,12));
+  },
+  seed(S){
+    this.ch1.clear();this.ch2.clear();
+    S.rec.buf.slice(-120).forEach(f=>{
+      this.ch1.push(f.t,[f.m.powerHp,f.e.powerHp,f.m.map]);
+      this.ch2.push(f.t,[Math.max(...f.m.cht),f.m.cltT,f.m.oilT]);});
+  }
+};
+
+/* ===== src/ui/views/twin.js ===== */
+const TWIN_ROWS=[
+ ['rpm','Crankshaft speed','RPM',0],['map','Manifold pressure','inHg',2],
+ ['boost','Turbo boost','inHg',2],['dp','Filter differential pressure','kPa',2],['iat','Intake air temp','\u00B0C',1],
+ ['powerHp','Shaft power','hp',1],['ff','Fuel flow','L/h',2],
+ ['fuelP','Fuel pressure','bar',3],['oilP','Oil pressure','bar',2],
+ ['oilT','Oil temperature','\u00B0C',1],['cltT','Coolant temperature','\u00B0C',1],
+ ['vib1','Vibration 1x order','mm/s',2],['vib2','Vibration 2x order','mm/s',2],
+ ['volt','Bus voltage','V',2],['amp','Charge current','A',1],['tas','True airspeed','kt',0]
+];
+const RES_TOL={rpm:60,map:1.2,boost:1.0,dp:0.6,iat:6,powerHp:5,ff:2,fuelP:.04,oilP:.35,
+  oilT:7,cltT:6,vib1:1.1,vib2:1.0,volt:.6,amp:6,tas:6};
+
+VIEWS.twin={
+  layer:'05', nav:'Digital twin', title:'Digital twin core',
+  desc:'A calibrated model of a healthy engine of this type is run in lock-step at the same commanded operating point. The difference between what the sensors report and what the twin expects is the residual — the raw material for every layer above this one.',
+  build(){
+    const root=el('div','grid g-2-1');
+    const tbl=panel('Measured against twin expectation','RESIDUAL = MEASURED \u2212 TWIN');
+    tbl.body.className='panel-body tight';
+    const wrap=el('div','tbl-wrap');
+    const t=el('table');
+    t.innerHTML='<thead><tr><th>Parameter</th><th class="num">Measured</th><th class="num">Twin</th><th class="num">Residual</th><th style="width:110px">Deviation</th></tr></thead>';
+    const tb=el('tbody');this.rows={};
+    TWIN_ROWS.forEach(([k,name,unit,dp])=>{
+      const tr=el('tr');
+      tr.innerHTML=`<td>${name} <span class="dimmer mono" style="font-size:10px">${unit}</span></td>
+        <td class="num" data-m></td><td class="num twinc" data-e></td><td class="num" data-r></td>
+        <td><div class="bar"><span></span></div></td>`;
+      tb.appendChild(tr);
+      this.rows[k]={m:tr.querySelector('[data-m]'),e:tr.querySelector('[data-e]'),
+        r:tr.querySelector('[data-r]'),b:tr.querySelector('.bar>span'),dp};
+    });
+    t.appendChild(tb);wrap.appendChild(t);tbl.body.appendChild(wrap);
+    root.appendChild(tbl);
+
+    const side=el('div','grid');
+    const sy=panel('Twin synchronisation','MODEL STATE');
+    this.kSync=kv('Tracking quality','\u2014');
+    this.kNorm=kv('Residual L2 norm','\u2014');
+    this.kWorst=kv('Largest deviation','\u2014');
+    this.kStep=kv('Integration step','100 ms');
+    this.kWear=kv('Wear states tracked','8');
+    [this.kSync,this.kNorm,this.kWorst,this.kStep,this.kWear].forEach(x=>sy.body.appendChild(x));
+    sy.body.appendChild(el('div','sep'));
+    sy.body.appendChild(el('p','hint','The twin is deliberately not told about wear or injected faults. It only receives throttle, altitude and outside air temperature, exactly as the real flight-control computer would publish them.'));
+    side.appendChild(sy);
+
+    const cw=panel('Wear state estimate','TWIN INTERNAL');
+    this.wearBars={};
+    ['rings','bearings','turbo','cooling','ignition','injectors','oil','filter'].forEach(k=>{
+      const b=bar({rings:'Piston rings & bore',bearings:'Bearings',turbo:'Turbocharger',
+        cooling:'Cooling system',ignition:'Ignition',injectors:'Injectors',
+        oil:'Oil charge',filter:'Air filter'}[k],0);
+      b.style.marginBottom='9px';this.wearBars[k]=b;cw.body.appendChild(b);
+    });
+    side.appendChild(cw);
+    root.appendChild(side);
+
+    const c=panel('Residual traces','KEY CHANNELS');
+    c.body.className='panel-body tight';
+    this.ch=newChart({height:170,window:180,series:[
+      {key:'a',color:cssv('--caution'),label:'Coolant residual, \u00B0C'},
+      {key:'b',color:cssv('--info'),label:'Oil pressure residual, bar \u00D710'},
+      {key:'c',color:cssv('--twin'),label:'MAP residual, inHg'},
+      {key:'d',color:cssv('--warn'),label:'Vibration residual, mm/s'}]});
+    this.ch.mount(c.body);
+    c.className+=' span2';
+    root.appendChild(c);
+    return root;
+  },
+  update(S){
+    const m=S.sensors,e=S.twin,r=S.resid;
+    let worst={k:null,v:0},acc=0;
+    TWIN_ROWS.forEach(([k])=>{
+      const row=this.rows[k];
+      row.m.textContent=fmt(m[k],row.dp);
+      row.e.textContent=fmt(e[k],row.dp);
+      const res=r[k], tol=RES_TOL[k]||1;
+      const ratio=Math.abs(res)/tol; acc+=ratio*ratio;
+      row.r.textContent=(res>=0?'+':'')+fmt(res,row.dp);
+      row.r.className='num '+(ratio>2?'wrn':ratio>1?'cau':'dim');
+      row.b.style.width=clamp(ratio/3*100,0,100)+'%';
+      row.b.style.background=ratio>2?cssv('--warn'):ratio>1?cssv('--caution'):cssv('--nominal');
+      if(ratio>worst.v)worst={k,v:ratio,name:TWIN_ROWS.find(x=>x[0]===k)[1]};
+    });
+    const norm=Math.sqrt(acc/TWIN_ROWS.length);
+    this.kNorm.val.textContent=fmt(norm,3);
+    this.kNorm.val.className='v mono '+(norm>1.4?'wrn':norm>0.8?'cau':'nom');
+    const q=clamp(100-norm*38,0,100);
+    this.kSync.val.textContent=fmt(q,1)+' %';
+    this.kSync.val.className='v mono '+(q>70?'nom':q>45?'cau':'wrn');
+    this.kWorst.val.textContent=worst.k?`${worst.name} \u00D7${fmt(worst.v,2)}`:'\u2014';
+    this.kWorst.val.className='v mono '+(worst.v>2?'wrn':worst.v>1?'cau':'dim');
+    for(const k in this.wearBars){
+      const d=S.eng.deg[k]*100;
+      this.wearBars[k].set(d,d>80?cssv('--warn'):d>55?cssv('--caution'):cssv('--twin'));
+    }
+    this.ch.push(S.t,[r.cltT,r.oilP*10,r.map,r.vibRms]);
+  },
+  seed(S){this.ch.clear();S.rec.buf.slice(-180).forEach(f=>{
+    this.ch.push(f.t,[f.m.cltT-f.e.cltT,(f.m.oilP-f.e.oilP)*10,f.m.map-f.e.map,null]);});}
+};
+
+/* ===== src/ui/views/telemetry.js ===== */
+VIEWS.telemetry={
+  layer:'02', nav:'Telemetry', title:'Real-time telemetry',
+  desc:'The raw sensor bus at 10 Hz: 31 channels sampled, quantised and noise-affected exactly as a real data-acquisition unit would deliver them over the downlink.',
+  build(){
+    const root=el('div','grid g2');
+    const cy=panel('Per-cylinder combustion','4 \u00D7 EGT / CHT / PEAK PRESSURE');
+    const g=el('div','cylgrid');this.cyl=[];
+    for(let i=0;i<4;i++){
+      const c=el('div','cyl');
+      c.innerHTML=`<h5>CYL ${i+1}</h5>
+        <div class="big" data-egt>--</div><div class="sm">EGT \u00B0C</div>
+        <div class="big" data-cht style="margin-top:6px">--</div><div class="sm">CHT \u00B0C</div>
+        <div class="sm" data-pk style="margin-top:6px">Pmax --</div>`;
+      g.appendChild(c);
+      this.cyl.push({egt:c.querySelector('[data-egt]'),cht:c.querySelector('[data-cht]'),pk:c.querySelector('[data-pk]')});
+    }
+    cy.body.appendChild(g);
+    this.kSpread=kv('EGT spread','\u2014');this.kCspread=kv('CHT spread','\u2014');
+    cy.body.appendChild(el('div','sep'));
+    cy.body.appendChild(this.kSpread);cy.body.appendChild(this.kCspread);
+    root.appendChild(cy);
+
+    const bus_=panel('Downlink status','TELEMETRY LINK');
+    this.kRate=kv('Sample rate','10.0 Hz');
+    this.kCh=kv('Active channels','32 / 32');
+    this.kLat=kv('Link latency','\u2014');
+    this.kLoss=kv('Packet loss','0.00 %');
+    this.kRec=kv('Recorder depth','\u2014');
+    this.kFrames=kv('Frames captured','0');
+    [this.kRate,this.kCh,this.kLat,this.kLoss,this.kRec,this.kFrames].forEach(x=>bus_.body.appendChild(x));
+    root.appendChild(bus_);
+
+    const ce=panel('Exhaust gas temperature','PER CYLINDER');
+    ce.body.className='panel-body tight';
+    const cols=[cssv('--nominal'),cssv('--caution'),cssv('--warn'),cssv('--info')];
+    this.chE=newChart({height:160,window:120,series:[0,1,2,3].map(i=>({key:'e'+i,color:cols[i],label:'Cyl '+(i+1)}))});
+    this.chE.mount(ce.body);root.appendChild(ce);
+
+    const cc=panel('Cylinder head temperature','PER CYLINDER');
+    cc.body.className='panel-body tight';
+    this.chC=newChart({height:160,window:120,series:[0,1,2,3].map(i=>({key:'c'+i,color:cols[i],label:'Cyl '+(i+1)}))});
+    this.chC.mount(cc.body);root.appendChild(cc);
+
+    const cv=panel('Vibration orders','1x / 2x / BROADBAND');
+    cv.body.className='panel-body tight';
+    this.chV=newChart({height:150,window:120,min:0,series:[
+      {key:'1',color:cssv('--nominal'),label:'1x order'},
+      {key:'2',color:cssv('--warn'),label:'2x order'},
+      {key:'r',color:cssv('--ink-2'),label:'RMS'}]});
+    this.chV.mount(cv.body);root.appendChild(cv);
+
+    const cf=panel('Fluids & electrical','OIL / FUEL / BUS');
+    cf.body.className='panel-body tight';
+    this.chF=newChart({height:150,window:120,series:[
+      {key:'op',color:cssv('--info'),label:'Oil pressure, bar'},
+      {key:'fp',color:cssv('--caution'),label:'Fuel pressure, bar \u00D75'},
+      {key:'v',color:cssv('--twin'),label:'Bus voltage, V \u00F72'}]});
+    this.chF.mount(cf.body);root.appendChild(cf);
+
+    const all=panel('All channels','RAW BUS');
+    all.body.className='panel-body tight';
+    const w=el('div','tbl-wrap');this.allTbl=el('table');w.appendChild(this.allTbl);all.body.appendChild(w);
+    all.className+=' span2';root.appendChild(all);
+    return root;
+  },
+  update(S){
+    const m=S.sensors;
+    for(let i=0;i<4;i++){
+      this.cyl[i].egt.textContent=m.egt[i].toFixed(0);
+      this.cyl[i].egt.className='big '+sevClass(sevOf('egt',m.egt[i]));
+      this.cyl[i].cht.textContent=m.cht[i].toFixed(1);
+      this.cyl[i].cht.className='big '+sevClass(sevOf('cht',m.cht[i]));
+      this.cyl[i].pk.textContent='Pmax '+m.cyclePk[i].toFixed(0)+' bar';
+    }
+    const es=Math.max(...m.egt)-Math.min(...m.egt), cs=Math.max(...m.cht)-Math.min(...m.cht);
+    this.kSpread.val.textContent=fmt(es,0)+' \u00B0C';
+    this.kSpread.val.className='v mono '+(es>150?'wrn':es>90?'cau':'nom');
+    this.kCspread.val.textContent=fmt(cs,1)+' \u00B0C';
+    this.kCspread.val.className='v mono '+(cs>30?'cau':'nom');
+    this.kLat.val.textContent=fmt(118+gauss(6),0)+' ms';
+    this.kRec.val.textContent=hhmmss(S.rec.duration);
+    this.kFrames.val.textContent=S.rec.buf.length.toLocaleString();
+    this.kLoss.val.textContent=fmt(Math.max(0,gauss(0.03)+0.04),2)+' %';
+
+    this.chE.push(S.t,m.egt);
+    this.chC.push(S.t,m.cht);
+    this.chV.push(S.t,[m.vib1,m.vib2,m.vibRms]);
+    this.chF.push(S.t,[m.oilP,m.fuelP*5,m.volt/2]);
+
+    if(!this._t||performance.now()-this._t>400){
+      this._t=performance.now();
+      const rows=[
+        ['ENG-RPM','Crankshaft speed',m.rpm,0,'RPM','rpm'],
+        ['IND-MAP','Manifold abs. pressure',m.map,2,'inHg','map'],
+        ['IND-BST','Turbo boost',m.boost,2,'inHg',null],
+        ['IND-IAT','Intake air temperature',m.iat,1,'\u00B0C','iat'],
+        ['IND-DPF','Filter differential pressure',m.dp,2,'kPa',null],
+        ['CMB-EG1','EGT cylinder 1',m.egt[0],0,'\u00B0C','egt'],
+        ['CMB-EG2','EGT cylinder 2',m.egt[1],0,'\u00B0C','egt'],
+        ['CMB-EG3','EGT cylinder 3',m.egt[2],0,'\u00B0C','egt'],
+        ['CMB-EG4','EGT cylinder 4',m.egt[3],0,'\u00B0C','egt'],
+        ['CMB-CH1','CHT cylinder 1',m.cht[0],1,'\u00B0C','cht'],
+        ['CMB-CH2','CHT cylinder 2',m.cht[1],1,'\u00B0C','cht'],
+        ['CMB-CH3','CHT cylinder 3',m.cht[2],1,'\u00B0C','cht'],
+        ['CMB-CH4','CHT cylinder 4',m.cht[3],1,'\u00B0C','cht'],
+        ['LUB-OIP','Oil pressure',m.oilP,2,'bar','oilP'],
+        ['LUB-OIT','Oil temperature',m.oilT,1,'\u00B0C','oilT'],
+        ['LUB-QTY','Oil quantity',m.oilL,2,'L',null],
+        ['CLG-CLT','Coolant temperature',m.cltT,1,'\u00B0C','cltT'],
+        ['CLG-QTY','Coolant quantity',m.cltL,2,'L',null],
+        ['FUE-FLW','Fuel flow',m.ff,2,'L/h','ff'],
+        ['FUE-PRS','Fuel pressure',m.fuelP,3,'bar','fuelP'],
+        ['FUE-QTY','Fuel remaining',m.fuelKg,1,'kg',null],
+        ['MEC-VB1','Vibration 1x order',m.vib1,2,'mm/s',null],
+        ['MEC-VB2','Vibration 2x order',m.vib2,2,'mm/s',null],
+        ['MEC-VBR','Vibration broadband',m.vibRms,2,'mm/s','vib'],
+        ['ELE-VLT','Bus voltage',m.volt,2,'V','volt'],
+        ['ELE-AMP','Charge current',m.amp,1,'A',null],
+        ['PWR-SHP','Shaft power',m.powerHp,1,'hp',null],
+        ['AIR-TAS','True airspeed',m.tas,0,'kt',null],
+        ['AIR-ALT','Pressure altitude',S.cmd.alt,0,'ft',null],
+        ['AIR-OAT','Outside air temperature',S.cmd.oat-1.98*(S.cmd.alt/1000),1,'\u00B0C',null],
+        ['CTL-THR','Throttle command',S.cmd.throttle*100,1,'%',null],
+        ['SYS-MET','Mission elapsed time',S.t,0,'s',null]];
+      this.allTbl.innerHTML='<thead><tr><th>Channel</th><th>Description</th><th class="num">Value</th><th>Unit</th><th>State</th></tr></thead><tbody>'+
+        rows.map(([id,d,v,dp,u,lk])=>{
+          const s=lk?sevOf(lk,v):0;
+          return `<tr><td class="mono dimmer">${id}</td><td>${d}</td><td class="num">${fmt(v,dp)}</td>
+          <td class="dimmer mono" style="font-size:11px">${u}</td>
+          <td><span class="pill ${sevClass(s)}">${s===2?'WARN':s===1?'CAUT':'OK'}</span></td></tr>`;}).join('')+'</tbody>';
+    }
+  },
+  seed(S){[this.chE,this.chC,this.chV,this.chF].forEach(c=>c.clear());
+    S.rec.buf.slice(-120).forEach(f=>{this.chE.push(f.t,f.m.egt);this.chC.push(f.t,f.m.cht);
+      this.chV.push(f.t,[f.m.vib1,f.m.vib2,f.m.vibRms]);
+      this.chF.push(f.t,[f.m.oilP,f.m.fuelP*5,f.m.volt/2]);});}
+};
+
+/* ===== src/ui/views/health.js ===== */
+VIEWS.health={
+  layer:'06', nav:'Engine health', title:'Engine health monitoring',
+  desc:'Each subsystem carries a condition index that blends accumulated wear, residual energy against the twin, and any latched limit exceedance. Margins below show how close each parameter is sitting to its published limit.',
+  build(){
+    const root=el('div','grid g-1-2');
+    const ov=panel('Condition indices','0 \u2013 100');
+    this.big=el('div');this.big.style.cssText='font-family:var(--mono);font-size:44px;font-weight:600;line-height:1';
+    ov.body.appendChild(this.big);
+    this.bigSub=el('div','dim');this.bigSub.style.cssText='font-size:12px;margin:2px 0 14px';
+    ov.body.appendChild(this.bigSub);
+    this.sysBars={};
+    SUBSYS.forEach(s=>{const b=bar(s.name,100);b.style.marginBottom='10px';this.sysBars[s.id]=b;ov.body.appendChild(b);});
+    root.appendChild(ov);
+
+    const mg=panel('Limit margins','MEASURED vs PUBLISHED LIMIT');
+    mg.body.className='panel-body tight';
+    const w=el('div','tbl-wrap');this.mgTbl=el('table');w.appendChild(this.mgTbl);mg.body.appendChild(w);
+    root.appendChild(mg);
+
+    const tr=panel('Condition trend','ROLLING 10 MIN');
+    tr.body.className='panel-body tight';
+    this.ch=newChart({height:160,window:600,min:0,max:105,series:[
+      {key:'o',color:cssv('--nominal'),label:'Overall index'},
+      {key:'w',color:cssv('--caution'),label:'Weakest subsystem'}]});
+    this.ch.mount(tr.body);
+    tr.className+=' span2';root.appendChild(tr);
+
+    const ex=panel('Cumulative exposure','SINCE OVERHAUL');
+    this.kHrs=kv('Engine hours (TSO)','\u2014');
+    this.kStarts=kv('Starts','\u2014');
+    this.kHot=kv('Time above 112 \u00B0C CHT','\u2014');
+    this.kHi=kv('Time above 90% power','\u2014');
+    this.kCyc=kv('Thermal cycles','\u2014');
+    this.kTbo=kv('TBO consumed','\u2014');
+    [this.kHrs,this.kStarts,this.kHot,this.kHi,this.kCyc,this.kTbo].forEach(x=>ex.body.appendChild(x));
+    root.appendChild(ex);
+
+    const nt=panel('Interpretation','AUTOMATED');
+    this.notes=el('div');nt.body.appendChild(this.notes);
+    root.appendChild(nt);
+    this.hot=0;this.hi=0;
+    return root;
+  },
+  update(S){
+    this.big.textContent=fmt(S.health.overall,1);
+    this.big.style.color=healthColor(S.health.overall);
+    const worst=Object.values(S.health.subsystems).reduce((a,b)=>a.value<b.value?a:b);
+    this.bigSub.textContent=`Overall condition index \u00B7 weakest link: ${worst.name}`;
+    for(const id in this.sysBars){
+      const v=S.health.subsystems[id].value;
+      this.sysBars[id].set(v,healthColor(v));
+    }
+    const m=S.sensors;
+    if(Math.max(...m.cht)>112)this.hot+=0.1*S.speed;
+    if(m.powerHp>103)this.hi+=0.1*S.speed;
+    this.kHrs.val.textContent=fmt(S.eng.hours,2)+' h';
+    this.kStarts.val.textContent=S.eng.starts;
+    this.kHot.val.textContent=hhmmss(this.hot);
+    this.kHi.val.textContent=hhmmss(this.hi);
+    this.kCyc.val.textContent=(S.eng.starts*2+Math.floor(S.t/600)).toLocaleString();
+    const tbo=S.eng.hours/1200*100;
+    this.kTbo.val.textContent=fmt(tbo,1)+' % of 1200 h';
+    this.kTbo.val.className='v mono '+(tbo>85?'wrn':tbo>70?'cau':'nom');
+
+    this.ch.push(S.t,[S.health.overall,worst.value]);
+
+    if(!this._t||performance.now()-this._t>500){
+      this._t=performance.now();
+      const rows=[['rpm',m.rpm],['map',m.map],['egt',Math.max(...m.egt)],['cht',Math.max(...m.cht)],
+        ['oilT',m.oilT],['oilP',m.oilP],['cltT',m.cltT],['fuelP',m.fuelP],['vib',m.vibRms],
+        ['volt',m.volt],['iat',m.iat],['ff',m.ff]];
+      this.mgTbl.innerHTML='<thead><tr><th>Parameter</th><th class="num">Value</th><th class="num">Caution</th><th class="num">Limit</th><th class="num">Margin</th><th style="width:96px">Usage</th></tr></thead><tbody>'+
+        rows.map(([k,v])=>{
+          const L=LIMITS[k],s=sevOf(k,v);
+          const margin=L.inverted?v-L.red:L.red-v;
+          const usage=clamp(L.inverted?(L.max-v)/(L.max-L.red)*100:v/L.red*100,0,140);
+          const col=s===2?cssv('--warn'):s===1?cssv('--caution'):cssv('--nominal');
+          return `<tr><td>${L.name}</td><td class="num ${sevClass(s)}">${fmt(v,2)}</td>
+            <td class="num dimmer">${fmt(L.caution,2)}</td><td class="num dimmer">${fmt(L.red,2)}</td>
+            <td class="num ${margin<0?'wrn':''}">${(margin>=0?'+':'')}${fmt(margin,2)}</td>
+            <td><div class="bar"><span style="width:${clamp(usage,0,100)}%;background:${col}"></span></div></td></tr>`;
+        }).join('')+'</tbody>';
+
+      const n=[];
+      Object.values(S.health.subsystems).forEach(s=>{
+        if(s.value<60)n.push(`<p style="margin:0 0 8px"><span class="wrn">${s.name}</span> is degraded at ${fmt(s.value,0)}/100. Review the fault detection view before the next sortie.</p>`);
+        else if(s.value<80)n.push(`<p style="margin:0 0 8px"><span class="cau">${s.name}</span> is drifting at ${fmt(s.value,0)}/100 and is worth watching.</p>`);
+      });
+      if(tbo>70)n.push('<p style="margin:0 0 8px">More than 70% of the 1200 h overhaul interval is consumed. Plan the shop visit against the limiting component in the RUL view.</p>');
+      if(!n.length)n.push('<p style="margin:0" class="dim">All subsystems are above 80/100 and no exceedance is latched. Nothing requires attention at this time.</p>');
+      this.notes.innerHTML=n.join('');
+    }
+  },
+  seed(S){this.ch.clear();S.rec.buf.forEach(f=>this.ch.push(f.t,[f.health,null]));}
+};
+
+/* ===== src/ui/views/faults.js ===== */
+VIEWS.faults={
+  layer:'07', nav:'Fault detection', title:'Fault detection',
+  desc:'A deterministic rule engine of 20 checks runs beside the machine-learning layer so that a fault is caught two independent ways. Rules use both absolute limits and physics cross-checks against the twin, with a 0.8 s persistence filter to reject transients.',
+  build(){
+    const root=el('div','grid g-2-1');
+    const act=panel('Active conditions','LATCHED');
+    act.body.className='panel-body tight';
+    this.actWrap=el('div');this.actWrap.style.padding='6px';act.body.appendChild(this.actWrap);
+    root.appendChild(act);
+
+    const sm=panel('Detection summary','STATUS');
+    this.kActive=kv('Active rules','0');
+    this.kWarn=kv('Warnings','0');
+    this.kCaut=kv('Cautions','0');
+    this.kLast=kv('Last event','\u2014');
+    this.kMtbf=kv('Rules evaluated','0');
+    [this.kActive,this.kWarn,this.kCaut,this.kLast,this.kMtbf].forEach(x=>sm.body.appendChild(x));
+    sm.body.appendChild(el('div','sep'));
+    this.hint=el('p','hint');sm.body.appendChild(this.hint);
+    root.appendChild(sm);
+
+    const mx=panel('Rule matrix','20 RULES \u00B7 8 SUBSYSTEMS');
+    mx.body.className='panel-body tight';
+    const w=el('div','tbl-wrap');this.mxTbl=el('table');w.appendChild(this.mxTbl);mx.body.appendChild(w);
+    mx.className+=' span2';root.appendChild(mx);
+
+    const lg=panel('Event log','FULL MISSION');
+    this.log=el('div','log');this.log.style.maxHeight='420px';lg.body.appendChild(this.log);
+    lg.className+=' span2';root.appendChild(lg);
+    this.evalCount=0;
+    return root;
+  },
+  update(S){
+    const fired=S.diag.fired;
+    this.kActive.val.textContent=fired.length;
+    const w=fired.filter(f=>f.sev===2).length,c=fired.length-w;
+    this.kWarn.val.textContent=w;this.kWarn.val.className='v mono '+(w?'wrn':'dim');
+    this.kCaut.val.textContent=c;this.kCaut.val.className='v mono '+(c?'cau':'dim');
+    const last=S.alarms.find(e=>e.sev>0);
+    this.kLast.val.textContent=last?hhmmss(last.t):'\u2014';
+    this.evalCount+=RULES.length;
+    this.kMtbf.val.textContent=this.evalCount.toLocaleString();
+
+    const armed=FAULT_DEFS.filter(f=>S.eng.faults[f.id].sev>0.02);
+    this.hint.innerHTML=armed.length
+      ? 'Signature under way: '+armed.map(f=>`<span class="cau">${f.name}</span> at ${(S.eng.faults[f.id].sev*100).toFixed(0)}% severity`).join('; ')+'.'
+      : 'No fault is injected. Use the simulation view to inject one and watch the rules and the classifier pick it up.';
+
+    if(!this._t||performance.now()-this._t>350){
+      this._t=performance.now();
+      this.actWrap.innerHTML='';
+      if(!fired.length){
+        this.actWrap.appendChild(el('div','dim','No condition is outside tolerance. The rule engine is evaluating all 19 checks every frame.'));
+      }else{
+        fired.slice().sort((a,b)=>b.sev-a.sev).forEach(f=>{
+          const d=el('div');
+          d.style.cssText='border-left:2px solid '+(f.sev===2?cssv('--warn'):cssv('--caution'))+
+            ';padding:8px 11px;margin-bottom:7px;background:var(--bg)';
+          d.innerHTML=`<div style="display:flex;gap:9px;align-items:center;margin-bottom:2px">
+            <span class="pill ${sevClass(f.sev)}">${f.sev===2?'WARNING':'CAUTION'}</span>
+            <span class="mono dimmer" style="font-size:11px">${f.id}</span>
+            <span class="mono dimmer" style="font-size:11px;margin-left:auto">${f.sys}</span></div>
+            <div style="font-size:13px">${f.txt}</div>`;
+          this.actWrap.appendChild(d);
+        });
+      }
+      const activeIds=new Set(fired.map(f=>f.id));
+      this.mxTbl.innerHTML='<thead><tr><th>ID</th><th>Subsystem</th><th>Check</th><th class="num">Severity</th><th>State</th></tr></thead><tbody>'+
+        RULES.map(R=>{const on=activeIds.has(R.id);
+          return `<tr${on?' style="background:color-mix(in srgb,'+(R.sev===2?cssv('--warn'):cssv('--caution'))+' 9%,transparent)"':''}>
+            <td class="mono dimmer">${R.id}</td><td>${R.sys}</td><td>${R.txt}</td>
+            <td class="num dimmer">${R.sev===2?'Warning':'Caution'}</td>
+            <td><span class="pill ${on?sevClass(R.sev):'dimmer'}">${on?'ACTIVE':'clear'}</span></td></tr>`;}).join('')+'</tbody>';
+      renderLog(this.log,S.alarms.slice(0,60));
+    }
+  },
+  seed(){}
+};
+
+/* ===== src/ui/views/predictive.js ===== */
+VIEWS.predictive={
+  layer:'08', nav:'Predictive analytics', title:'AI / ML predictive analytics',
+  desc:'Three models run on the standardised residual vector: an LSTM autoencoder for unsupervised anomaly detection, a gradient-boosted classifier for fault mode, and a Bayesian degradation model feeding the RUL layer. Inference happens on-board, at frame rate.',
+  build(){
+    const root=el('div','grid g-2-1');
+    const an=panel('Anomaly score','LSTM AUTOENCODER \u00B7 RECONSTRUCTION ERROR');
+    an.body.className='panel-body tight';
+    this.chA=newChart({height:170,window:300,min:0,thresh:0.38,series:[
+      {key:'a',color:cssv('--caution'),label:'Anomaly score',fill:true},
+      {key:'i',color:cssv('--ink-3'),label:'Instantaneous',w:1}]});
+    this.chA.mount(an.body);
+    root.appendChild(an);
+
+    const st=panel('Detector state','');
+    this.aBig=el('div');this.aBig.style.cssText='font-family:var(--mono);font-size:38px;font-weight:600;line-height:1';
+    st.body.appendChild(this.aBig);
+    this.aSub=el('div','dim');this.aSub.style.cssText='font-size:12px;margin:2px 0 12px';
+    st.body.appendChild(this.aSub);
+    this.kThr=kv('Decision threshold','0.380');
+    this.kLatency=kv('Detection latency','\u2014');
+    this.kInf=kv('Inference time','\u2014');
+    this.kWin=kv('Sequence window','60 frames / 6 s');
+    [this.kThr,this.kLatency,this.kInf,this.kWin].forEach(x=>st.body.appendChild(x));
+    root.appendChild(st);
+
+    const cl=panel('Fault mode classification','GRADIENT-BOOSTED TREES \u00B7 12 CLASSES');
+    this.clWrap=el('div');cl.body.appendChild(this.clWrap);
+    root.appendChild(cl);
+
+    const fe=panel('Feature attribution','STANDARDISED RESIDUALS');
+    this.feWrap=el('div');fe.body.appendChild(this.feWrap);
+    root.appendChild(fe);
+
+    const mc=panel('Model registry','DEPLOYED ON EDGE COMPUTE');
+    mc.body.className='panel-body tight';
+    const w=el('div','tbl-wrap');
+    w.innerHTML=`<table><thead><tr><th>Model</th><th>Task</th><th>Architecture</th><th class="num">Params</th><th class="num">Validation</th><th>Trained on</th></tr></thead><tbody>
+      <tr><td>ae-resid-v4</td><td>Anomaly detection</td><td>LSTM autoencoder, 2\u00D764 latent 12</td><td class="num">184 k</td><td class="num">AUC 0.961</td><td>412 h nominal flight</td></tr>
+      <tr><td>clf-mode-v7</td><td>Fault classification</td><td>Gradient-boosted trees, 300 est.</td><td class="num">\u2014</td><td class="num">F1 0.913</td><td>1 840 seeded fault runs</td></tr>
+      <tr><td>rul-bayes-v3</td><td>Remaining useful life</td><td>Bayesian exponential degradation</td><td class="num">32</td><td class="num">MAPE 11.4%</td><td>27 run-to-failure sets</td></tr>
+      <tr><td>twin-cal-v2</td><td>Twin calibration</td><td>Least-squares parameter fit</td><td class="num">46</td><td class="num">R\u00B2 0.987</td><td>Test-cell acceptance data</td></tr>
+      </tbody></table>`;
+    mc.body.appendChild(w);
+    mc.className+=' span2';root.appendChild(mc);
+    this.detectStart=null;
+    return root;
+  },
+  update(S){
+    const ml=S.ml;
+    this.chA.push(S.t,[ml.anomalyEma,ml.anomaly]);
+    this.aBig.textContent=fmt(ml.anomalyEma,3);
+    this.aBig.style.color=ml.detected?cssv('--warn'):ml.anomalyEma>0.28?cssv('--caution'):cssv('--nominal');
+    this.aSub.textContent=ml.detected?'Anomaly declared — residual pattern is off the nominal manifold'
+      :ml.anomalyEma>0.28?'Elevated but below threshold':'Within the nominal operating manifold';
+    this.kInf.val.textContent=fmt(ml.infMs,2)+' ms';
+    const anyFault=FAULT_DEFS.some(f=>S.eng.faults[f.id].armed);
+    if(anyFault&&this.detectStart==null)this.detectStart=S.t;
+    if(!anyFault)this.detectStart=null;
+    if(this.detectStart!=null&&ml.detected){if(!this._lat)this._lat=S.t-this.detectStart;}
+    if(!anyFault)this._lat=null;
+    this.kLatency.val.textContent=this._lat?fmt(this._lat,1)+' s from injection':'\u2014';
+
+    if(!this._t||performance.now()-this._t>320){
+      this._t=performance.now();
+      this.clWrap.innerHTML='';
+      ml.cls.slice(0,6).forEach(c=>{
+        const row=el('div');row.style.marginBottom='9px';
+        const col=c.id==='nominal'?cssv('--nominal'):c.p>0.6?cssv('--warn'):c.p>0.3?cssv('--caution'):cssv('--ink-3');
+        row.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
+            <span>${c.name}</span><span class="mono">${(c.p*100).toFixed(1)}%</span></div>
+          <div class="bar"><span style="width:${c.p*100}%;background:${col}"></span></div>
+          <div class="dimmer mono" style="font-size:10px;margin-top:2px">${c.sys}</div>`;
+        this.clWrap.appendChild(row);
+      });
+      this.feWrap.innerHTML='';
+      const names={egtSpread:'EGT spread',egtMean:'EGT mean',cht3:'CHT 3 vs siblings',oilP:'Oil pressure',
+        oilT:'Oil temperature',cltT:'Coolant temperature',map:'Manifold pressure',ff:'Fuel flow',
+        vib1:'Vibration 1x',vib2:'Vibration 2x',volt:'Bus voltage',fuelP:'Fuel pressure',
+        iat:'Intake air temp',power:'Shaft power',dp:'Filter \u0394 pressure',egtOut:'EGT outlier, signed'};
+      FEATS.map((k,i)=>({k,z:ml.z[i]})).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z)).slice(0,8).forEach(f=>{
+        const row=el('div');row.style.marginBottom='8px';
+        const mag=clamp(Math.abs(f.z)/3,0,1)*100;
+        const col=Math.abs(f.z)>2?cssv('--warn'):Math.abs(f.z)>1?cssv('--caution'):cssv('--ink-3');
+        row.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+            <span class="dim">${names[f.k]}</span><span class="mono">${f.z>=0?'+':''}${f.z.toFixed(2)}\u03C3</span></div>
+          <div class="bar"><span style="width:${mag}%;background:${col}"></span></div>`;
+        this.feWrap.appendChild(row);
+      });
+    }
+  },
+  seed(S){this.chA.clear();S.rec.buf.slice(-300).forEach(f=>this.chA.push(f.t,[f.anom,null]));}
+};
+
+/* ===== src/ui/views/rul.js ===== */
+VIEWS.rul={
+  layer:'08', nav:'Remaining useful life', title:'Remaining useful life',
+  desc:'Component wear is integrated continuously from load, temperature and detected fault severity. The Bayesian degradation model projects each state forward to its end-of-life threshold and returns a credible interval, not a single number.',
+  build(){
+    const root=el('div','grid');
+    const hd=panel('Life projection','END OF LIFE AT 90% WEAR');
+    hd.body.className='panel-body tight';
+    const w=el('div','tbl-wrap');this.tbl=el('table');w.appendChild(this.tbl);hd.body.appendChild(w);
+    root.appendChild(hd);
+
+    const g=el('div','grid g2');
+    const lim=panel('Limiting component','FIRST TO REACH END OF LIFE');
+    this.lBig=el('div');this.lBig.style.cssText='font-family:var(--mono);font-size:40px;font-weight:600;line-height:1';
+    lim.body.appendChild(this.lBig);
+    this.lName=el('div');this.lName.style.cssText='font-size:14px;margin:4px 0 2px';
+    lim.body.appendChild(this.lName);
+    this.lCi=el('div','dim mono');this.lCi.style.cssText='font-size:12px;margin-bottom:14px';
+    lim.body.appendChild(this.lCi);
+    this.rb=el('div','rulbar');
+    this.rb.innerHTML='<div class="band"></div><div class="pt"></div><div class="lbl mono"></div>';
+    lim.body.appendChild(this.rb);
+    this.rbScale=el('div','dimmer mono');this.rbScale.style.cssText='font-size:10px;display:flex;justify-content:space-between;margin-top:4px';
+    lim.body.appendChild(this.rbScale);
+    lim.body.appendChild(el('div','sep'));
+    this.kSort=kv('Next scheduled sortie','4.5 h endurance');
+    this.kGo=kv('Sortie feasible','\u2014');
+    this.kSched=kv('Recommended action','\u2014');
+    [this.kSort,this.kGo,this.kSched].forEach(x=>lim.body.appendChild(x));
+    g.appendChild(lim);
+
+    const tr=panel('Degradation trajectory','WEAR STATE vs TIME');
+    tr.body.className='panel-body tight';
+    this.ch=newChart({height:190,window:900,min:0,max:100,series:[
+      {key:'r',color:cssv('--caution'),label:'Piston rings'},
+      {key:'b',color:cssv('--info'),label:'Bearings'},
+      {key:'t',color:cssv('--twin'),label:'Turbocharger'},
+      {key:'o',color:cssv('--warn'),label:'Oil charge'}]});
+    this.ch.mount(tr.body);
+    g.appendChild(tr);
+    root.appendChild(g);
+
+    const mt=panel('Maintenance planning','DERIVED FROM RUL');
+    this.plan=el('div');mt.body.appendChild(this.plan);
+    root.appendChild(mt);
+    return root;
+  },
+  update(S){
+    const R=S.ml.rul;
+    if(!R.__overall)return;
+    const items=Object.entries(R).filter(([k])=>k!=='__overall').map(([k,v])=>({k,...v})).sort((a,b)=>a.rul-b.rul);
+    const ov=R.__overall;
+    this.lBig.textContent=fmt(ov.rul,0);
+    this.lBig.style.color=ov.rul<25?cssv('--warn'):ov.rul<80?cssv('--caution'):cssv('--nominal');
+    this.lName.innerHTML=`engine hours remaining on <strong>${ov.name.toLowerCase()}</strong>`;
+    this.lCi.textContent=`90% credible interval ${fmt(ov.lo,0)} \u2013 ${fmt(ov.hi,0)} h \u00B7 wear ${(ov.deg*100).toFixed(1)}%`;
+    const scale=Math.max(ov.hi*1.15,40);
+    this.rb.querySelector('.band').style.left=(ov.lo/scale*100)+'%';
+    this.rb.querySelector('.band').style.width=((ov.hi-ov.lo)/scale*100)+'%';
+    this.rb.querySelector('.pt').style.left=(ov.rul/scale*100)+'%';
+    this.rb.querySelector('.lbl').textContent=fmt(ov.rul,0)+' h';
+    this.rbScale.innerHTML=`<span>0 h</span><span>${fmt(scale/2,0)} h</span><span>${fmt(scale,0)} h</span>`;
+    const feasible=ov.lo>4.5;
+    this.kGo.val.textContent=feasible?'Yes':'No — defer';
+    this.kGo.val.className='v mono '+(feasible?'nom':'wrn');
+    this.kSched.val.textContent=ov.rul<25?'Schedule now':ov.rul<80?'Plan within 2 weeks':'Continue normal interval';
+    this.kSched.val.className='v mono '+(ov.rul<25?'wrn':ov.rul<80?'cau':'nom');
+
+    const d=S.eng.deg;
+    this.ch.push(S.t,[d.rings*100,d.bearings*100,d.turbo*100,d.oil*100]);
+
+    if(!this._t||performance.now()-this._t>500){
+      this._t=performance.now();
+      this.tbl.innerHTML='<thead><tr><th>Component</th><th class="num">Wear</th><th class="num">RUL</th><th class="num">90% interval</th><th class="num">Wear rate</th><th class="num">Confidence</th><th style="width:120px">Life consumed</th></tr></thead><tbody>'+
+        items.map(c=>{
+          const col=c.rul<25?cssv('--warn'):c.rul<80?cssv('--caution'):cssv('--nominal');
+          return `<tr><td>${c.name}</td>
+            <td class="num">${(c.deg*100).toFixed(1)}%</td>
+            <td class="num" style="color:${col}">${fmt(c.rul,0)} h</td>
+            <td class="num dimmer">${fmt(c.lo,0)} \u2013 ${fmt(c.hi,0)}</td>
+            <td class="num dimmer">${(c.rate*100).toFixed(3)} %/h</td>
+            <td class="num dimmer">${(c.conf*100).toFixed(0)}%</td>
+            <td><div class="bar"><span style="width:${c.deg*100/0.9}%;background:${col}"></span></div></td></tr>`;
+        }).join('')+'</tbody>';
+      const p=[];
+      items.filter(c=>c.rul<120).forEach(c=>{
+        p.push(`<div class="kv"><div class="k">${c.name}</div><div class="v ${c.rul<25?'wrn':'cau'}">${c.rul<25?'Schedule immediately':'Bring forward to next inspection'} \u00B7 ${fmt(c.rul,0)} h</div></div>`);
+      });
+      if(!p.length)p.push('<p class="dim" style="margin:0">Every component has more than 120 h of projected life. No unscheduled maintenance is indicated; continue the normal 50 h inspection cycle.</p>');
+      else p.unshift('<p class="dim" style="margin:0 0 8px">Components projected to reach end of life within 120 engine hours:</p>');
+      this.plan.innerHTML=p.join('');
+    }
+  },
+  seed(S){this.ch.clear();}
+};
+
+/* ===== src/ui/views/simulation.js ===== */
+VIEWS.simulation={
+  layer:'03', nav:'Simulation & faults', title:'Simulation and fault injection',
+  desc:'Drive the plant model directly. Mission profiles fly themselves; manual mode gives you the throttle. Injected faults ramp in progressively, the way real degradation arrives, so you can watch detection latency rather than a step change.',
+  build(){
+    const root=el('div','grid g-1-2');
+    const ctl=panel('Flight control','PLANT INPUT');
+    const pf=el('label','fld');
+    pf.innerHTML='<span>MISSION PROFILE</span>';
+    this.selProfile=el('select');
+    Object.entries(PROFILES).forEach(([k,v])=>{const o=el('option');o.value=k;o.textContent=v.name;this.selProfile.appendChild(o);});
+    this.selProfile.value=S.profile;
+    this.selProfile.onchange=()=>{S.profile=this.selProfile.value;S.seg=0;S.segT=0;
+      pushEvent({type:'info',sev:0,txt:'Profile loaded: '+PROFILES[S.profile].name,sys:'Mission',t:S.t});
+      toast('Profile loaded');};
+    pf.appendChild(this.selProfile);ctl.body.appendChild(pf);
+
+    const md=el('div');md.style.cssText='display:flex;gap:6px;margin-bottom:12px';
+    this.bAuto=el('button','btn on','Autopilot');
+    this.bMan=el('button','btn','Manual throttle');
+    this.bAuto.onclick=()=>{S.mode='auto';this.bAuto.classList.add('on');this.bMan.classList.remove('on');};
+    this.bMan.onclick=()=>{S.mode='manual';this.bMan.classList.add('on');this.bAuto.classList.remove('on');};
+    md.appendChild(this.bAuto);md.appendChild(this.bMan);ctl.body.appendChild(md);
+
+    const mk=(label,min,max,step,val,unit,fn)=>{
+      const l=el('label','fld');
+      const span=el('span');span.innerHTML=label+' <b class="mono" style="float:right;font-weight:500"></b>';
+      l.appendChild(span);
+      const i=el('input');i.type='range';i.min=min;i.max=max;i.step=step;i.value=val;
+      const out=span.querySelector('b');out.textContent=(+val).toFixed(step<1?1:0)+' '+unit;
+      i.oninput=()=>{out.textContent=(+i.value).toFixed(step<1?1:0)+' '+unit;fn(+i.value);};
+      l.appendChild(i);l.out=out;l.input=i;return l;
+    };
+    this.sThr=mk('THROTTLE',0,100,1,16,'%',v=>{if(S.mode==='manual')S.cmd.throttle=v/100;});
+    this.sAlt=mk('COMMANDED ALTITUDE',0,26000,100,0,'ft',v=>{if(S.mode==='manual')S.cmd.alt=v;});
+    this.sOat=mk('SEA-LEVEL OAT',-20,50,1,24,'\u00B0C',v=>{S.cmd.oat=v;});
+    [this.sThr,this.sAlt,this.sOat].forEach(x=>ctl.body.appendChild(x));
+
+    const row=el('div');row.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
+    const bCut=el('button','btn','Cut ignition');
+    bCut.onclick=()=>{S.armed=!S.armed;bCut.textContent=S.armed?'Cut ignition':'Restart engine';
+      bCut.classList.toggle('on',!S.armed);
+      if(S.armed)S.eng.starts++;
+      pushEvent({type:'info',sev:S.armed?0:2,txt:S.armed?'Engine restart commanded':'Ignition cut commanded',sys:'Mission',t:S.t});};
+    const bAge=el('button','btn','Age 25 h');
+    bAge.onclick=()=>{for(let i=0;i<9000;i++)S.eng.step(10,S.cmd);S.eng.hours+=0;toast('Advanced 25 engine hours of wear');};
+    row.appendChild(bCut);row.appendChild(bAge);
+    ctl.body.appendChild(el('div','sep'));ctl.body.appendChild(row);
+    root.appendChild(ctl);
+
+    const fi=panel('Fault injection','11 SEEDED FAILURE MODES');
+    this.fiWrap=el('div');fi.body.appendChild(this.fiWrap);
+    FAULT_DEFS.forEach(f=>{
+      const r=el('div','switchrow');
+      const l=el('div');
+      l.innerHTML=`<div class="nm">${f.name}</div><div class="sub">${f.sys} \u00B7 <span data-sev>0%</span></div>
+        <div class="hint" style="margin-top:3px;max-width:60ch">${f.hint}</div>`;
+      const t=el('button','toggle');t.setAttribute('aria-pressed','false');
+      t.setAttribute('aria-label','Inject '+f.name);
+      t.onclick=()=>{const on=t.getAttribute('aria-pressed')!=='true';
+        t.setAttribute('aria-pressed',String(on));S.eng.setFault(f.id,on);
+        pushEvent({type:'inject',sev:on?1:0,txt:(on?'Fault injected: ':'Fault cleared: ')+f.name,sys:f.sys,t:S.t});
+        toast(on?'Injected: '+f.name:'Cleared: '+f.name);};
+      r.appendChild(l);r.appendChild(t);
+      r.sev=l.querySelector('[data-sev]');r.toggle=t;r.fid=f.id;
+      this.fiWrap.appendChild(r);
+    });
+    const cl=el('button','btn','Clear all faults');
+    cl.style.marginTop='12px';
+    cl.onclick=()=>{S.eng.clearFaults();
+      this.fiWrap.querySelectorAll('.toggle').forEach(t=>t.setAttribute('aria-pressed','false'));
+      pushEvent({type:'inject',sev:0,txt:'All injected faults cleared',sys:'Mission',t:S.t});toast('All faults cleared');};
+    fi.body.appendChild(cl);
+    root.appendChild(fi);
+
+    const pr=panel('Mission profile timeline','SEGMENTS');
+    pr.body.className='panel-body tight';
+    this.tl=el('div','timeline');this.tl.style.margin='8px';pr.body.appendChild(this.tl);
+    pr.className+=' span2';root.appendChild(pr);
+    return root;
+  },
+  update(S){
+    if(S.mode==='auto'){
+      this.sThr.input.value=S.cmd.throttle*100;this.sThr.out.textContent=(S.cmd.throttle*100).toFixed(0)+' %';
+      this.sAlt.input.value=S.cmd.alt;this.sAlt.out.textContent=S.cmd.alt.toFixed(0)+' ft';
+    }
+    if(!this._t||performance.now()-this._t>300){
+      this._t=performance.now();
+      this.fiWrap.querySelectorAll('.switchrow').forEach(r=>{
+        const sv=S.eng.faults[r.fid].sev;
+        r.sev.textContent=(sv*100).toFixed(0)+'%';
+        r.sev.className=sv>0.6?'wrn':sv>0.1?'cau':'';
+      });
+      const segs=PROFILES[S.profile].segs, total=segs.reduce((a,s)=>a+s.d,0);
+      let acc=0;
+      this.tl.innerHTML=segs.map((s,i)=>{
+        const left=acc/total*100,wpc=s.d/total*100;acc+=s.d;
+        const on=i===S.seg;
+        return `<div class="seg" style="left:${left}%;width:${wpc}%;${on?'background:color-mix(in srgb,'+cssv('--caution')+' 16%,transparent);color:'+cssv('--caution'):''}">${s.ph}</div>`;
+      }).join('')+`<div class="cursor" style="left:${clamp((segs.slice(0,S.seg).reduce((a,s)=>a+s.d,0)+S.segT)/total,0,1)*100}%"></div>`;
+    }
+  },
+  seed(){}
+};
+
+/* ===== src/ui/views/replay.js ===== */
+VIEWS.replay={
+  layer:'10', nav:'Mission replay', title:'Mission replay',
+  desc:'The data recorder keeps a 1 Hz frame of every channel, the twin expectation, the anomaly score and any rule that was firing. Scrub back to the moment a caution appeared and read the whole engine state at that instant.',
+  build(){
+    const root=el('div','grid');
+    const ctl=panel('Recorder','1 Hz \u00B7 2 h RING BUFFER');
+    const bar_=el('div');bar_.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px';
+    this.bEnter=el('button','btn primary','Enter replay');
+    this.bPlay=el('button','btn','Play');
+    this.bStep=el('button','btn mono','\u25C0 10 s');
+    this.bStep2=el('button','btn mono','10 s \u25B6');
+    this.bLive=el('button','btn','Return to live');
+    this.tPos=el('span','mono dim');this.tPos.style.marginLeft='auto';
+    [this.bEnter,this.bPlay,this.bStep,this.bStep2,this.bLive,this.tPos].forEach(x=>bar_.appendChild(x));
+    ctl.body.appendChild(bar_);
+    this.tl=el('div','timeline');ctl.body.appendChild(this.tl);
+    this.scrub=el('input');this.scrub.type='range';this.scrub.min=0;this.scrub.max=1;this.scrub.step=1;this.scrub.value=0;
+    ctl.body.appendChild(this.scrub);
+    ctl.body.appendChild(el('div','hint','Markers on the strip are recorded events: amber for a caution, red for a warning, grey for a phase change.'));
+    root.appendChild(ctl);
+
+    this.bEnter.onclick=()=>{ if(!S.rec.buf.length){toast('Nothing recorded yet');return;}
+      S.replay.mode=true;S.replay.t=S.rec.duration;this.scrub.value=S.rec.buf.length-1;this.render();toast('Replay mode');};
+    this.bLive.onclick=()=>{S.replay.mode=false;S.replay.playing=false;this.bPlay.textContent='Play';toast('Live telemetry');};
+    this.bPlay.onclick=()=>{if(!S.replay.mode)return;S.replay.playing=!S.replay.playing;
+      this.bPlay.textContent=S.replay.playing?'Pause':'Play';};
+    this.bStep.onclick=()=>this.step(-10);
+    this.bStep2.onclick=()=>this.step(10);
+    this.scrub.oninput=()=>{S.replay.mode=true;const f=S.rec.buf[+this.scrub.value];if(f){S.replay.t=f.t;this.render();}};
+
+    const g=el('div','grid g2');
+    const fr=panel('Frame state','AT CURSOR');
+    fr.body.className='panel-body tight';
+    const w=el('div','tbl-wrap');this.frTbl=el('table');w.appendChild(this.frTbl);fr.body.appendChild(w);
+    g.appendChild(fr);
+    const ev=panel('Events at this point','\u00B1 30 s');
+    this.evLog=el('div','log');ev.body.appendChild(this.evLog);
+    g.appendChild(ev);
+    root.appendChild(g);
+
+    const ch=panel('Recorded traces','FULL MISSION');
+    ch.body.className='panel-body tight';
+    this.ch=newChart({height:200,window:999999,series:[
+      {key:'p',color:cssv('--nominal'),label:'Shaft power, hp'},
+      {key:'c',color:cssv('--caution'),label:'CHT max, \u00B0C'},
+      {key:'a',color:cssv('--warn'),label:'Anomaly \u00D7100'},
+      {key:'h',color:cssv('--twin'),label:'Health index'}]});
+    this.ch.mount(ch.body);
+    root.appendChild(ch);
+    return root;
+  },
+  step(d){ if(!S.rec.buf.length)return; S.replay.mode=true;
+    const i=clamp(+this.scrub.value+d,0,S.rec.buf.length-1);
+    this.scrub.value=i;const f=S.rec.buf[i];if(f){S.replay.t=f.t;this.render();} },
+  update(S){
+    if(S.replay.mode&&S.replay.playing){
+      const i=+this.scrub.value+1;
+      if(i>=S.rec.buf.length){S.replay.playing=false;this.bPlay.textContent='Play';}
+      else{this.scrub.value=i;S.replay.t=S.rec.buf[i].t;}
+    }
+    if(!S.replay.mode){this.scrub.max=Math.max(1,S.rec.buf.length-1);
+      if(!S.replay.playing)this.scrub.value=S.rec.buf.length-1;}
+    this.bLive.classList.toggle('on',!S.replay.mode);
+    this.bEnter.classList.toggle('on',S.replay.mode);
+    if(!this._t||performance.now()-this._t>200){this._t=performance.now();this.render();}
+  },
+  render(){
+    const buf=S.rec.buf;
+    this.scrub.max=Math.max(1,buf.length-1);
+    const f=buf[clamp(+this.scrub.value,0,buf.length-1)];
+    this.tPos.textContent=S.replay.mode?('REPLAY '+hhmmss(f?f.t:0)+' / '+hhmmss(S.rec.duration)):('LIVE '+hhmmss(S.t));
+    const dur=Math.max(1,S.rec.duration);
+    this.tl.innerHTML=S.rec.events.map(e=>{
+      const col=e.sev===2?cssv('--warn'):e.sev===1?cssv('--caution'):cssv('--ink-3');
+      return `<div class="ev" style="left:${e.t/dur*100}%;background:${col};opacity:${e.sev?1:.45}" title="${e.txt}"></div>`;
+    }).join('')+(f?`<div class="cursor" style="left:${f.t/dur*100}%"></div>`:'');
+
+    if(f){
+      const rows=[['Phase',f.phase,''],['Throttle',(f.throttle*100).toFixed(0),'%'],
+        ['Altitude',f.alt.toFixed(0),'ft'],['RPM',f.m.rpm.toFixed(0),''],
+        ['MAP',f.m.map.toFixed(2),'inHg'],['EGT max',Math.max(...f.m.egt).toFixed(0),'\u00B0C'],
+        ['CHT max',Math.max(...f.m.cht).toFixed(1),'\u00B0C'],
+        ['Oil pressure',f.m.oilP.toFixed(2),'bar'],['Oil temperature',f.m.oilT.toFixed(1),'\u00B0C'],
+        ['Coolant',f.m.cltT.toFixed(1),'\u00B0C'],['Fuel flow',f.m.ff.toFixed(2),'L/h'],
+        ['Vibration',f.m.vibRms.toFixed(2),'mm/s'],['Bus voltage',f.m.volt.toFixed(2),'V'],
+        ['Shaft power',f.m.powerHp.toFixed(1),'hp'],['Twin power',f.e.powerHp.toFixed(1),'hp'],
+        ['Anomaly score',f.anom.toFixed(3),''],['Health index',f.health.toFixed(1),''],
+        ['Rules firing',f.rules.length?f.rules.join(' '):'none','']];
+      this.frTbl.innerHTML='<thead><tr><th>Parameter</th><th class="num">Value</th><th>Unit</th></tr></thead><tbody>'+
+        rows.map(([k,v,u])=>`<tr><td>${k}</td><td class="num">${v}</td><td class="dimmer mono" style="font-size:11px">${u}</td></tr>`).join('')+'</tbody>';
+      const near=S.rec.events.filter(e=>Math.abs(e.t-f.t)<=30).slice(-14).reverse();
+      renderLog(this.evLog,near);
+    }
+    this.ch.clear();
+    const stride=Math.max(1,Math.floor(buf.length/600));
+    for(let i=0;i<buf.length;i+=stride){const b=buf[i];
+      this.ch.push(b.t,[b.m.powerHp,Math.max(...b.m.cht),b.anom*100,b.health]);}
+    this.ch.o.window=Math.max(60,dur);
+  },
+  seed(){this.render();}
+};
+
+/* ===== src/ui/views/reports.js ===== */
+VIEWS.reports={
+  layer:'10', nav:'Reports', title:'Reporting',
+  desc:'Everything the other layers produced, consolidated into a maintenance-ready document. Reports are generated from the recorder, not from the live frame, so a report is reproducible from the same flight data.',
+  build(){
+    const root=el('div','grid');
+    const ctl=panel('Generate','MISSION & MAINTENANCE');
+    const row=el('div');row.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+    const bGen=el('button','btn primary','Generate report');
+    const bCopy=el('button','btn','Copy report text');
+    const bCsv=el('button','btn','Copy telemetry CSV');
+    const bPrint=el('button','btn','Print');
+    [bGen,bCopy,bCsv,bPrint].forEach(x=>row.appendChild(x));
+    ctl.body.appendChild(row);
+    ctl.body.appendChild(el('div','hint','The report reflects the recorder contents at the moment you generate it. Copy puts it on the clipboard as plain text, ready to paste into a maintenance record.'));
+    root.appendChild(ctl);
+
+    const out=panel('Report preview','');
+    this.out=el('div','report');
+    this.out.innerHTML='<p class="dim">No report generated yet. Fly some of the mission, then generate a report to see the consolidated assessment.</p>';
+    out.body.className='panel-body tight';
+    out.body.appendChild(this.out);
+    root.appendChild(out);
+
+    bGen.onclick=()=>{this.R=reporting.build(S);this.renderReport();toast('Report generated');};
+    bCopy.onclick=async()=>{ if(!this.R){toast('Generate a report first');return;}
+      try{await navigator.clipboard.writeText(reporting.asText(this.R,S));toast('Report copied');}
+      catch(e){toast('Clipboard unavailable in this context');}};
+    bCsv.onclick=async()=>{ if(!S.rec.buf.length){toast('Recorder is empty');return;}
+      try{await navigator.clipboard.writeText(reporting.asCsv(S.rec));toast(S.rec.buf.length+' frames copied as CSV');}
+      catch(e){toast('Clipboard unavailable in this context');}};
+    bPrint.onclick=()=>window.print();
+    return root;
+  },
+  renderReport(){
+    const R=this.R,s=R.summary;
+    const h=[];
+    h.push(`<h3>Mission and engine health report</h3>
+      <p class="mono dimmer" style="font-size:11px">UAV-04 "KESTREL" \u00B7 ENGINE S/N 914F-2207-18 \u00B7 GENERATED ${R.stamp}</p>`);
+    h.push('<h4>Mission summary</h4>');
+    h.push(`<table><tbody>
+      <tr><td>Profile</td><td class="num">${s.profile}</td></tr>
+      <tr><td>Elapsed time</td><td class="num">${hhmmss(s.met)}</td></tr>
+      <tr><td>Final phase</td><td class="num">${s.phase}</td></tr>
+      <tr><td>Engine hours since overhaul</td><td class="num">${fmt(s.hours,2)} h</td></tr>
+      <tr><td>Fuel consumed</td><td class="num">${fmt(s.fuelUsed,1)} kg</td></tr>
+      <tr><td>Peak CHT / EGT</td><td class="num">${fmt(s.peakCht,0)} / ${fmt(s.peakEgt,0)} \u00B0C</td></tr>
+      <tr><td>Peak vibration</td><td class="num">${fmt(s.peakVib,2)} mm/s RMS</td></tr>
+      <tr><td>Peak shaft power</td><td class="num">${fmt(s.maxPower,1)} hp</td></tr></tbody></table>`);
+    h.push('<h4>Health assessment</h4>');
+    h.push(`<p>Overall condition index <strong style="color:${healthColor(s.health)}">${fmt(s.health,1)} / 100</strong>. Subsystem breakdown:</p>`);
+    h.push('<table><tbody>'+Object.values(S.health.subsystems).map(x=>
+      `<tr><td>${x.name}</td><td class="num" style="color:${healthColor(x.value)}">${fmt(x.value,1)}</td></tr>`).join('')+'</tbody></table>');
+    h.push('<h4>Machine-learning diagnosis</h4>');
+    h.push(`<p>Anomaly score ${fmt(s.anomaly,3)} against a decision threshold of 0.380 \u2014 ${s.anomaly>0.38?'<span class="wrn">anomaly declared</span>':'within the nominal manifold'}. Most likely mode: <strong>${R.top?R.top.name:'none'}</strong> at ${R.top?(R.top.p*100).toFixed(1):'0'}% confidence.</p>`);
+    h.push('<h4>Remaining useful life</h4>');
+    h.push('<table><thead><tr><th>Component</th><th class="num">Wear</th><th class="num">RUL</th><th class="num">90% interval</th></tr></thead><tbody>'+
+      R.rul.map(c=>`<tr><td>${c.name}</td><td class="num">${(c.deg*100).toFixed(0)}%</td>
+        <td class="num" style="color:${c.rul<25?cssv('--warn'):c.rul<80?cssv('--caution'):cssv('--nominal')}">${fmt(c.rul,0)} h</td>
+        <td class="num dimmer">${fmt(c.lo,0)} \u2013 ${fmt(c.hi,0)} h</td></tr>`).join('')+'</tbody></table>');
+    h.push(`<h4>Event log (${R.alarms.length} cautions and warnings)</h4>`);
+    h.push(R.alarms.length?'<table><tbody>'+R.alarms.slice(-25).reverse().map(e=>
+      `<tr><td class="mono dimmer" style="width:74px">${hhmmss(e.t)}</td>
+       <td class="${e.sev===2?'wrn':'cau'}" style="width:60px">${e.sev===2?'WARNING':'CAUTION'}</td>
+       <td>${e.txt}</td></tr>`).join('')+'</tbody></table>'
+      :'<p>No cautions or warnings were recorded during this mission.</p>');
+    h.push('<h4>Recommended actions</h4>');
+    h.push('<ul>'+R.actions.map(a=>`<li>${a}</li>`).join('')+'</ul>');
+    this.out.innerHTML=h.join('');
+  },
+  update(){},
+  seed(){}
+};
+
+/* ===== src/ui/views/architecture.js ===== */
+const LAYERS=[
+ ['01','Physical asset and sensor set','Turbocharged 4-cylinder aero-piston engine, 4x EGT, 4x CHT, oil and fuel pressure and temperature, coolant, MAP, IAT, tri-axial accelerometer, filter differential pressure, tacho, bus voltage.','EngineModel'],
+ ['02','Data acquisition and conditioning','10 Hz sampling, anti-alias filtering, quantisation and per-channel noise; sensor faults live here so the layers above never see the truth for free.','SensorLayer'],
+ ['03','Simulation and scenario control','Mission profile scheduler, manual flight control, and progressive fault injection across 11 seeded failure modes.','PROFILES / FAULT_DEFS'],
+ ['04','Telemetry transport','Frame assembly, downlink latency and loss accounting, channel health. The ground segment consumes only what arrives over this link.','Recorder.tick'],
+ ['05','Digital twin core','A calibrated healthy-engine model integrated in lock-step at the same commanded operating point. Emits expectations and residuals.','DigitalTwin'],
+ ['06','Health monitoring','Condition indices per subsystem from wear state, residual energy and latched exceedances; limit-margin tracking against published limits.','HealthMonitor'],
+ ['07','Fault detection','20 deterministic rules combining absolute limits with physics cross-checks, each behind a persistence filter to reject transients.','Diagnostics'],
+ ['08','AI/ML predictive analytics and RUL','LSTM autoencoder for anomaly, gradient-boosted classifier for fault mode, Bayesian degradation model for remaining useful life with credible intervals.','MLService'],
+ ['09','Visualisation','EICAS-style instrument cluster, time-series canvas plots, residual and attribution views, condition dashboards.','TimeChart / tape / views'],
+ ['10','Reporting and replay','1 Hz mission data recorder with scrub and playback; consolidated mission, health, RUL and maintenance-action report.','Recorder / Reporting']
+];
+VIEWS.architecture={
+  layer:'\u2014', nav:'System architecture', title:'System architecture',
+  desc:'How the ten layers stack up, and which module in this build implements each one. Layers carrying live data right now are marked.',
+  build(){
+    const root=el('div','grid g-2-1');
+    const a=panel('Layer stack','BOTTOM-UP');
+    a.body.className='panel-body tight';
+    const st=el('div','arch');st.style.margin='8px';
+    this.rows=LAYERS.map(([n,name,desc,mod])=>{
+      const r=el('div','arch-layer');
+      r.innerHTML=`<div class="n">${n}</div><div class="c"><h4>${name}</h4><p>${desc}</p>
+        <code>${mod}</code> <span class="mono dimmer" style="font-size:10px;float:right" data-rate></span></div>`;
+      st.appendChild(r);return {r,rate:r.querySelector('[data-rate]')};
+    });
+    a.body.appendChild(st);
+    root.appendChild(a);
+
+    const side=el('div','grid');
+    const fl=panel('Data flow','PER FRAME');
+    fl.body.innerHTML=`<pre class="mono" style="font-size:11px;color:var(--ink-2);margin:0;white-space:pre-wrap;line-height:1.7">
+throttle, altitude, OAT
+  \u2193
+EngineModel.step()        ground truth + wear
+  \u2193
+SensorLayer.read()        noise, faults
+  \u2193                     \u2198
+DigitalTwin.expect()  \u2192  residuals
+  \u2193                     \u2193
+Diagnostics.run()     MLService.infer()
+  \u2193                     \u2193
+HealthMonitor      anomaly \u00B7 mode \u00B7 RUL
+  \u2198                     \u2199
+      Recorder \u00B7 Views \u00B7 Reporting</pre>`;
+    side.appendChild(fl);
+
+    const sp=panel('Runtime','THIS SESSION');
+    this.kFps=kv('Frame rate','\u2014');
+    this.kSim=kv('Simulated time','\u2014');
+    this.kTick=kv('Tick budget','\u2014');
+    this.kMem=kv('Recorder frames','\u2014');
+    this.kInf=kv('ML inference','\u2014');
+    this.kCh=kv('Channels modelled','32');
+    [this.kFps,this.kSim,this.kTick,this.kMem,this.kInf,this.kCh].forEach(x=>sp.body.appendChild(x));
+    side.appendChild(sp);
+    root.appendChild(side);
+    return root;
+  },
+  update(S){
+    this.kSim.val.textContent=hhmmss(S.t)+'  \u00D7'+S.speed;
+    this.kMem.val.textContent=S.rec.buf.length.toLocaleString()+' / '+S.rec.cap.toLocaleString();
+    this.kInf.val.textContent=fmt(S.ml.infMs,2)+' ms/frame';
+    this.kTick.val.textContent=fmt(window.__tickMs||0,2)+' ms';
+    this.kFps.val.textContent=fmt(window.__fps||0,0)+' Hz';
+    const live=[true,true,S.mode!=='off',true,true,true,S.diag.fired.length>0,S.ml.detected,true,S.rec.buf.length>0];
+    this.rows.forEach((x,i)=>{x.r.classList.toggle('live',!!live[i]);});
+    if(!this._t||performance.now()-this._t>700){
+      this._t=performance.now();
+      const rates=['10 Hz','10 Hz',S.mode,'10 Hz','10 Hz','10 Hz',
+        S.diag.fired.length+' active','score '+fmt(S.ml.anomalyEma,2),'60 Hz',S.rec.buf.length+' frames'];
+      this.rows.forEach((x,i)=>x.rate.textContent=rates[i]);
+    }
+  },
+  seed(){}
+};
+
+/* ===== src/ui/Router.js ===== */
+const NAVBTN = {};
+
+const NAV=[
+  ['Live monitoring',['overview','telemetry','twin','health']],
+  ['Diagnosis and prediction',['faults','predictive','rul']],
+  ['Operate',['simulation','replay','reports']],
+  ['Reference',['architecture']]
+];
+const ORDER=NAV.flatMap(g=>g[1]);
+let current=null;
+const getCurrent=()=>current;
+const getCurrentView=()=>VIEWS[current];
+const clearAlert=()=>{const b=NAVBTN[current];if(b)b.classList.remove('has-alert');};
+
+function buildNav(){
+  const nav=$('#nav');
+  NAV.forEach(([g,keys])=>{
+    nav.appendChild(el('div','rail-group',g));
+    keys.forEach(k=>{
+      const v=VIEWS[k];
+      const b=el('button','navitem');
+      b.innerHTML=`<span class="lyr">${v.layer}</span><span>${v.nav}</span><span class="dot"></span>`;
+      b.onclick=()=>route(k);
+      b.dataset.key=k;
+      NAVBTN[k]=b;
+      nav.appendChild(b);
+    });
+  });
+}
+function buildViews(){
+  const host=$('#views');
+  ORDER.forEach(k=>{
+    const v=VIEWS[k];
+    const sec=el('section','view');sec.id='view-'+k;
+    const head=el('div','view-head');
+    const left=el('div');
+    left.appendChild(el('h1','view-title',v.title));
+    left.appendChild(el('p','view-desc',v.desc));
+    head.appendChild(left);
+    head.appendChild(el('div','panel-tag','LAYER '+v.layer));
+    sec.appendChild(head);
+    v._host=sec;
+    host.appendChild(sec);
+  });
+}
+function route(k){
+  if(!VIEWS[k])return;
+  current=k;
+  const v=VIEWS[k];
+  if(!v._built){ v._host.appendChild(v.build()); v._built=true; }
+  ORDER.forEach(x=>{
+    VIEWS[x]._host.classList.toggle('active',x===k);
+    const btn=NAVBTN[x];
+    if(btn)btn.setAttribute('aria-current',String(x===k));
+  });
+  try{ v.seed&&v.seed(S); }catch(e){console.error(e);}
+  try{ S.sensors&&v.update&&v.update(S); }catch(e){console.error(e);}
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+/* --- alert badges on nav -------------------------------------------- */
+bus.on('alarm',e=>{
+  const map={Combustion:'faults',Lubrication:'faults',Cooling:'faults',Induction:'faults',
+    Mechanical:'faults',Fuel:'faults',Electrical:'faults',Sensors:'faults',Power:'faults'};
+  const k=map[e.sys]||'faults';
+  const b=NAVBTN[k];
+  if(b&&current!==k)b.classList.add('has-alert');
+});
+
+/* ===== src/ui/StatusStrip.js ===== */
+/* --- status strip --------------------------------------------------- */
+const STRIP=[
+  ['MET',s=>hhmmss(s.t),null],
+  ['PHASE',s=>s.phase,null],
+  ['RPM',s=>s.sensors.rpm.toFixed(0),s=>sevOf('rpm',s.sensors.rpm)],
+  ['MAP',s=>s.sensors.map.toFixed(1),s=>sevOf('map',s.sensors.map)],
+  ['EGT',s=>Math.max(...s.sensors.egt).toFixed(0),s=>sevOf('egt',Math.max(...s.sensors.egt))],
+  ['CHT',s=>Math.max(...s.sensors.cht).toFixed(0),s=>sevOf('cht',Math.max(...s.sensors.cht))],
+  ['OIL P',s=>s.sensors.oilP.toFixed(2),s=>sevOf('oilP',s.sensors.oilP)],
+  ['VIB',s=>s.sensors.vibRms.toFixed(1),s=>sevOf('vib',s.sensors.vibRms)],
+  ['HEALTH',s=>fmt(s.health.overall,0),s=>s.health.overall<60?2:s.health.overall<80?1:0],
+  ['ANOMALY',s=>fmt(s.ml.anomalyEma,2),s=>s.ml.detected?2:s.ml.anomalyEma>0.28?1:0]
+];
+let STRIP_EL=null, STRIP_BLOCKS=[], MASTERBAR=null, RAILCLOCK=null;
+function buildStrip(){
+  const strip=STRIP_EL=$('#strip');
+  MASTERBAR=$('#masterbar'); RAILCLOCK=$('#railClock');
+  const blocks=STRIP.map(([k])=>{
+    const b=el('div','strip-block');
+    b.appendChild(el('div','k',k));
+    const v=el('div','v','--');b.appendChild(v);
+    b.val=v;strip.appendChild(b);return b;
+  });
+  strip.appendChild(el('div','strip-spacer'));
+  const ctl=el('div','strip-ctl');
+  const bPlay=el('button','btn primary','Pause');
+  bPlay.onclick=()=>{S.running=!S.running;bPlay.textContent=S.running?'Pause':'Resume';
+    bPlay.classList.toggle('primary',S.running);};
+  ctl.appendChild(bPlay);
+  [1,5,20].forEach(sp=>{
+    const b=el('button','btn mono'+(sp===1?' on':''),'\u00D7'+sp);
+    b.onclick=()=>{S.speed=sp;ctl.querySelectorAll('.btn.mono').forEach(x=>x.classList.remove('on'));b.classList.add('on');};
+    ctl.appendChild(b);
+  });
+  const bReset=el('button','btn','Reset');
+  bReset.onclick=()=>{resetAll();
+    document.querySelectorAll('.toggle').forEach(t=>t.setAttribute('aria-pressed','false'));
+    toast('Simulation reset');};
+  ctl.appendChild(bReset);
+  const bTheme=el('button','btn','Light');
+  bTheme.onclick=()=>{const d=document.documentElement;
+    const light=d.getAttribute('data-theme')==='light';
+    d.setAttribute('data-theme',light?'dark':'light');
+    bTheme.textContent=light?'Light':'Dark';};
+  ctl.appendChild(bTheme);
+  strip.appendChild(ctl);
+  STRIP_BLOCKS=blocks;
+}
+function updateStrip(S){
+  STRIP.forEach(([k,get,sev],i)=>{
+    const b=STRIP_BLOCKS[i];
+    if(!b)return;
+    let txt='--',s=0;
+    try{txt=get(S);s=sev?sev(S):0;}catch(e){}
+    b.val.textContent=txt;
+    b.val.className='v '+(s===2?'wrn':s===1?'cau':'');
+  });
+  const warn=S.diag.fired.some(f=>f.sev===2), caut=S.diag.fired.length>0;
+  if(MASTERBAR)MASTERBAR.className='masterbar'+(warn?' warn':caut?' caution':'');
+  if(RAILCLOCK)RAILCLOCK.textContent='MET '+hhmmss(S.t);
+}
+
+/* ===== src/ui/Shell.js ===== */
+function boot(){
+  buildNav();buildViews();buildStrip();
+  pushEvent({type:'info',sev:0,txt:'AETHER-DT online \u00B7 twin synchronised \u00B7 '+PROFILES[S.profile].name,sys:'Mission',t:0});
+  // pre-roll 90 s so every view opens with history rather than an empty frame
+  for(let i=0;i<900;i++) tick(0.1);
+  route('overview');
+
+  let fpsT=performance.now(),frames=0;
+  setInterval(()=>{
+    if(!S.running)return;
+    const t0=performance.now();
+    const steps=S.speed;
+    for(let i=0;i<steps;i++) tick(0.1);
+    window.__tickMs=lerp(window.__tickMs||0,performance.now()-t0,0.1);
+    frames++;
+    const now=performance.now();
+    if(now-fpsT>1000){window.__fps=frames*1000/(now-fpsT);frames=0;fpsT=now;}
+    const v=getCurrentView();
+    if(v&&v.update&&S.sensors){ try{v.update(S);}catch(e){console.error('[view]',current,e);} }
+    if(S.sensors)updateStrip(S);
+    clearAlert();
+  },100);
+
+  requestAnimationFrame(rafLoop);
+
+  document.addEventListener('keydown',ev=>{
+    if(ev.target.tagName==='INPUT'||ev.target.tagName==='SELECT')return;
+    const i=ORDER.indexOf(getCurrent());
+    if(ev.key===']'){route(ORDER[(i+1)%ORDER.length]);}
+    if(ev.key==='['){route(ORDER[(i-1+ORDER.length)%ORDER.length]);}
+    if(ev.key===' '){ev.preventDefault();const b=$('#strip .btn.primary')||$('#strip .btn');
+      S.running=!S.running;const pb=$('#strip .strip-ctl .btn');pb.textContent=S.running?'Pause':'Resume';
+      pb.classList.toggle('primary',S.running);}
+  });
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AETHER-DT · UAV Engine Digital Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./src/styles/tokens.css">
+<link rel="stylesheet" href="./src/styles/app.css">
+</head>
+<body>
+<div class="app">
+  <nav class="rail">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="10" cy="10" r="8.5" fill="none" stroke="var(--caution)" stroke-width="1.2"/>
+          <circle cx="10" cy="10" r="3" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>
+          <path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3" stroke="var(--ink-2)" stroke-width="1.2"/>
+        </svg>
+        <span class="brand-name">AETHER-DT</span>
+      </div>
+      <div class="brand-sub">MALE UAV · PISTON ENGINE TWIN</div>
+    </div>
+    <div class="rail-scroll" id="nav"></div>
+    <div class="rail-foot">
+      <div>BUILD 2.4.1-demo</div>
+      <div id="railClock">MET 00:00:00</div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header class="strip" id="strip"></header>
+    <div class="masterbar" id="masterbar"></div>
+    <div id="views"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+</body>
+</html>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

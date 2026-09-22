@@ -8,7 +8,7 @@ import { rafLoop } from './components/TimeChart.js';
 
 export function boot(){
   buildNav();buildViews();buildStrip();
-  pushEvent({type:'info',sev:0,txt:'AETHER-DT online \u00B7 twin synchronised \u00B7 '+PROFILES[S.profile].name,sys:'Mission',t:0});
+  pushEvent({type:'info',sev:0,txt:'AEROTWIN online \u00B7 twin synchronised \u00B7 '+PROFILES[S.profile].name,sys:'Mission',t:0});
   // pre-roll 90 s so every view opens with history rather than an empty frame
   for(let i=0;i<900;i++) tick(0.1);
   route('overview');

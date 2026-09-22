@@ -23,7 +23,7 @@ export class Reporting{
   }
   asText(R,S){
     const L=[];
-    L.push('AETHER-DT MISSION & ENGINE HEALTH REPORT');
+    L.push('AEROTWIN MISSION & ENGINE HEALTH REPORT');
     L.push('Asset: UAV-04 "KESTREL" / Engine S/N 914F-2207-18');
     L.push('Generated: '+R.stamp);
     L.push('');

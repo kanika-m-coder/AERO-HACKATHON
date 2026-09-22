@@ -29,7 +29,7 @@ VIEWS.faults={
     this.hint=el('p','hint');sm.body.appendChild(this.hint);
     root.appendChild(sm);
 
-    const mx=panel('Rule matrix','20 RULES \u00B7 8 SUBSYSTEMS');
+    const mx=panel('Rule matrix','20 RULES \u00B7 HEALTH SUBSYSTEMS');
     mx.body.className='panel-body tight';
     const w=el('div','tbl-wrap');this.mxTbl=el('table');w.appendChild(this.mxTbl);mx.body.appendChild(w);
     mx.className+=' span2';root.appendChild(mx);

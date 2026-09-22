@@ -58,6 +58,13 @@ const js = ORDER.map(f => `\n/* ===== ${f} ===== */\n` + strip(read(f)).trim()).
 const css = STYLES.map(f => `/* ===== ${f} ===== */\n` + read(f).trim()).join('\n\n');
 
 let html = read('index.html');
+const logoPath = path.join(root, 'assets', 'logo.jpg');
+if (fs.existsSync(logoPath)) {
+  const logoB64 = fs.readFileSync(logoPath).toString('base64');
+  const logoDataUri = `data:image/jpeg;base64,${logoB64}`;
+  html = html.replace(/src="\.\/assets\/logo\.jpg"/g, `src="${logoDataUri}"`);
+  html = html.replace(/href="\.\/assets\/logo\.jpg"/g, `href="${logoDataUri}"`);
+}
 html = html.replace(/\n<link rel="stylesheet" href="\.\/src\/styles\/[^"]+">/g, '');
 html = html.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
 html = html.replace(

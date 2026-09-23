@@ -1,4 +1,4 @@
-# AETHER-DT
+# AeroTwin AI
 
 Digital twin and predictive engine health monitoring platform for a MALE UAV
 aero-piston engine (turbocharged four-cylinder, Rotax 914-class).
@@ -10,17 +10,26 @@ replay and reporting all operate on the same live data stream.
 
 ---
 
+## Engine Health States
+The Engine Health Monitoring module evaluates 6 condition states:
+1. **Fuel system** — Irregular fuel flow readings inconsistent with commanded RPM.
+2. **Cooling system** — Coolant divergence against twin predictions.
+3. **Lubricant system** — Falling oil pressure alongside rising temperature.
+4. **Health** — All sensor parameters within normal, stable ranges.
+5. **Bearing degradation** — Continuously rising vibration with temperature increase.
+6. **Overheating** — Abnormally high temperature independent of vibration.
+
+---
+
 ## Running it
 
 **The quickest way** — open `dist/uav-engine-digital-twin.html` in any modern
 browser. It is a single self-contained file with no server and no build step.
 
-**From source** — the source tree uses native ES modules, which browsers will
-not load over `file://`. Serve the folder over HTTP:
+**From source** — run the lightweight server:
 
 ```bash
-python3 -m http.server 8080      # or: npx serve .
-# then open http://localhost:8080
+node server.js                    # opens http://localhost:3000
 ```
 
 **Rebuilding the single-file version** after editing the source:
@@ -30,7 +39,7 @@ node build.js                    # writes dist/uav-engine-digital-twin.html
 ```
 
 `build.js` concatenates the modules in dependency order, drops the `import`
-statements, strips the `export` keyword and inlines the stylesheets. It needs
+statements, strips the `export` keyword and inlines the stylesheets and logo asset. It needs
 nothing but Node — no bundler, no dependencies.
 
 ---
@@ -38,9 +47,12 @@ nothing but Node — no bundler, no dependencies.
 ## Project structure
 
 ```
-aether-dt/
+aerotwin-ai/
 ├── index.html                  module entry point
 ├── build.js                    dependency-ordered bundler -> dist/
+├── server.js                   lightweight static HTTP server (port 3000)
+├── assets/
+│   └── logo.jpg                AeroTwin AI logo & favicon
 ├── dist/
 │   └── uav-engine-digital-twin.html    single-file build
 └── src/
@@ -58,7 +70,7 @@ aether-dt/
     │   ├── DigitalTwin.js      healthy-engine expectation model and residuals
     │   ├── Diagnostics.js      20-rule deterministic detection engine
     │   ├── MLService.js        anomaly, fault classification, RUL
-    │   ├── HealthMonitor.js    per-subsystem condition indices
+    │   ├── HealthMonitor.js    per-subsystem condition indices (6 health states)
     │   ├── Recorder.js         1 Hz mission data recorder / replay store
     │   └── Reporting.js        mission, health and maintenance report builder
     ├── ui/

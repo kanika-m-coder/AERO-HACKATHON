@@ -1,7 +1,7 @@
 import { bus } from './EventBus.js';
 
-/* Demo users & credentials */
-export const DEMO_USERS = {
+/* Initial default users & credentials */
+export const DEFAULT_USERS = {
   admin: {
     username: 'admin',
     password: 'admin123',
@@ -38,8 +38,26 @@ export class SecurityManager {
     this.tokenKey = 'aerotwin_jwt_token';
     this.sessionUserKey = 'aerotwin_session_user';
     this.eventsKey = 'aerotwin_security_events';
+    this.regUsersKey = 'aerotwin_registered_users';
+    this.users = this.loadUsers();
     this.events = this.loadEvents();
     this.initDefaultEvents();
+  }
+
+  loadUsers() {
+    try {
+      const stored = sessionStorage.getItem(this.regUsersKey);
+      const custom = stored ? JSON.parse(stored) : {};
+      return { ...DEFAULT_USERS, ...custom };
+    } catch (e) {
+      return { ...DEFAULT_USERS };
+    }
+  }
+
+  saveUsers(customUsers) {
+    try {
+      sessionStorage.setItem(this.regUsersKey, JSON.stringify(customUsers));
+    } catch (e) {}
   }
 
   loadEvents() {
@@ -93,7 +111,7 @@ export class SecurityManager {
     const now = Math.floor(Date.now() / 1000);
     const payload = {
       sub: userObj.username,
-      name: userObj.name,
+      name: userObj.name || userObj.username,
       role: userObj.role,
       iat: now,
       exp: now + 3600,
@@ -119,11 +137,41 @@ export class SecurityManager {
     }
   }
 
+  register({ name, username, password, role }) {
+    const cleanUser = (username || '').trim().toLowerCase();
+    if (!cleanUser || !password || !name) {
+      return { success: false, message: 'All fields are required.' };
+    }
+
+    if (this.users[cleanUser]) {
+      return { success: false, message: `Username '${cleanUser}' is already registered.` };
+    }
+
+    const newUser = {
+      username: cleanUser,
+      password,
+      role: role || 'Fleet Manager',
+      name: name.trim(),
+      desc: `Registered ${role || 'Fleet Manager'} account.`
+    };
+
+    this.users[cleanUser] = newUser;
+    
+    // Save custom users
+    try {
+      const stored = sessionStorage.getItem(this.regUsersKey);
+      const custom = stored ? JSON.parse(stored) : {};
+      custom[cleanUser] = newUser;
+      this.saveUsers(custom);
+    } catch (e) {}
+
+    this.logEvent('register_success', newUser.username, newUser.role, `Account created for '${newUser.username}' (${newUser.role})`, 0);
+    return this.login(newUser.username, newUser.password);
+  }
+
   login(username, password) {
-    const userKey = Object.keys(DEMO_USERS).find(
-      k => DEMO_USERS[k].username.toLowerCase() === (username || '').trim().toLowerCase()
-    );
-    const userObj = userKey ? DEMO_USERS[userKey] : null;
+    const cleanUser = (username || '').trim().toLowerCase();
+    const userObj = this.users[cleanUser];
 
     if (!userObj || userObj.password !== password) {
       this.logEvent('login_failure', username || 'unknown', 'Guest', `Failed login attempt for user '${username}' (Invalid credentials)`, 2);

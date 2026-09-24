@@ -66,13 +66,6 @@ export function buildLoginOverlay(onSuccess) {
         <a href="#" id="linkToSignin" style="font-size:12px;color:var(--info);text-decoration:none">Already have an account? Sign In</a>
       </div>
     </form>
-
-    <div style="margin-top:20px;text-align:center;padding-top:12px;border-top:1px solid var(--rule-soft)">
-      <span class="security-badge-pill">
-        <span class="dot-active"></span>
-        SECURE SESSION • JWT • RBAC
-      </span>
-    </div>
   `;
 
   overlayEl.appendChild(card);

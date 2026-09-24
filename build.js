@@ -77,5 +77,7 @@ html = html.replace(
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 const out = path.join(root, 'dist', 'uav-engine-digital-twin.html');
+const indexOut = path.join(root, 'dist', 'index.html');
 fs.writeFileSync(out, html);
-console.log(`built ${path.relative(root, out)}  (${(html.length / 1024).toFixed(1)} kB, ${ORDER.length} modules)`);
+fs.writeFileSync(indexOut, html);
+console.log(`built ${path.relative(root, out)} & ${path.relative(root, indexOut)}  (${(html.length / 1024).toFixed(1)} kB, ${ORDER.length} modules)`);

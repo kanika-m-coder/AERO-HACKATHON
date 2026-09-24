@@ -211,10 +211,12 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
 /* ---------- Security & Login Styles (Aerospace Cybernetic Theme) ---------- */
 .login-overlay {
   position: fixed; inset: 0; z-index: 100;
-  background: radial-gradient(circle at 50% 40%, rgba(14, 30, 42, 0.95) 0%, rgba(7, 12, 16, 0.98) 100%),
-              repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(34, 48, 58, 0.15) 39px, rgba(34, 48, 58, 0.15) 40px),
-              repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(34, 48, 58, 0.15) 39px, rgba(34, 48, 58, 0.15) 40px);
-  backdrop-filter: blur(14px);
+  background: radial-gradient(circle at 50% 35%, rgba(18, 42, 64, 0.97) 0%, rgba(9, 19, 30, 0.98) 65%, rgba(4, 8, 14, 0.99) 100%),
+              radial-gradient(circle at 85% 15%, rgba(232, 163, 61, 0.15) 0%, transparent 45%),
+              radial-gradient(circle at 15% 85%, rgba(90, 183, 201, 0.12) 0%, transparent 45%),
+              repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(90, 183, 201, 0.07) 39px, rgba(90, 183, 201, 0.07) 40px),
+              repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(90, 183, 201, 0.07) 39px, rgba(90, 183, 201, 0.07) 40px);
+  backdrop-filter: blur(16px);
   display: flex; align-items: center; justify-content: center;
   padding: 20px; overflow-y: auto; opacity: 1;
   transition: opacity 0.45s ease, backdrop-filter 0.45s ease;
@@ -224,9 +226,10 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
 }
 
 .login-card {
-  width: 100%; max-width: 440px; background: rgba(14, 22, 28, 0.92);
-  border: 1px solid rgba(90, 183, 201, 0.35); padding: 28px; border-radius: 8px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(90, 183, 201, 0.15);
+  width: 100%; max-width: 440px;
+  background: linear-gradient(165deg, rgba(16, 28, 40, 0.95) 0%, rgba(10, 18, 26, 0.97) 100%);
+  border: 1px solid rgba(90, 183, 201, 0.45); padding: 30px; border-radius: 10px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.92), 0 0 45px rgba(90, 183, 201, 0.2), 0 0 90px rgba(232, 163, 61, 0.12);
   position: relative; overflow: hidden; transform: scale(1) translateY(0);
   transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease, border-color 0.3s;
 }

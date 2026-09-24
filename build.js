@@ -76,11 +76,14 @@ html = html.replace(
 );
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
+fs.mkdirSync(path.join(root, 'public'), { recursive: true });
 const rootOut = path.join(root, 'index.html');
+const publicOut = path.join(root, 'public', 'index.html');
 const distOut = path.join(root, 'dist', 'uav-engine-digital-twin.html');
 const distIndexOut = path.join(root, 'dist', 'index.html');
 
 fs.writeFileSync(rootOut, html);
+fs.writeFileSync(publicOut, html);
 fs.writeFileSync(distOut, html);
 fs.writeFileSync(distIndexOut, html);
-console.log(`built index.html, dist/index.html & dist/uav-engine-digital-twin.html (${(html.length / 1024).toFixed(1)} kB, ${ORDER.length} modules)`);
+console.log(`built index.html, public/index.html, dist/index.html & dist/uav-engine-digital-twin.html (${(html.length / 1024).toFixed(1)} kB, ${ORDER.length} modules)`);

@@ -60,7 +60,7 @@ const strip = src => src
 const js = ORDER.map(f => `\n/* ===== ${f} ===== */\n` + strip(read(f)).trim()).join('\n');
 const css = STYLES.map(f => `/* ===== ${f} ===== */\n` + read(f).trim()).join('\n\n');
 
-let html = read('index.html');
+let html = fs.existsSync(path.join(root, 'index.template.html')) ? read('index.template.html') : read('index.html');
 const logoPath = path.join(root, 'assets', 'logo.jpg');
 if (fs.existsSync(logoPath)) {
   const logoB64 = fs.readFileSync(logoPath).toString('base64');
@@ -76,8 +76,11 @@ html = html.replace(
 );
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
-const out = path.join(root, 'dist', 'uav-engine-digital-twin.html');
-const indexOut = path.join(root, 'dist', 'index.html');
-fs.writeFileSync(out, html);
-fs.writeFileSync(indexOut, html);
-console.log(`built ${path.relative(root, out)} & ${path.relative(root, indexOut)}  (${(html.length / 1024).toFixed(1)} kB, ${ORDER.length} modules)`);
+const rootOut = path.join(root, 'index.html');
+const distOut = path.join(root, 'dist', 'uav-engine-digital-twin.html');
+const distIndexOut = path.join(root, 'dist', 'index.html');
+
+fs.writeFileSync(rootOut, html);
+fs.writeFileSync(distOut, html);
+fs.writeFileSync(distIndexOut, html);
+console.log(`built index.html, dist/index.html & dist/uav-engine-digital-twin.html (${(html.length / 1024).toFixed(1)} kB, ${ORDER.length} modules)`);

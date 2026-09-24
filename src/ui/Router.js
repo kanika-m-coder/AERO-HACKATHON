@@ -2,6 +2,9 @@ import { el, $ } from '../core/util.js';
 import { bus } from '../core/EventBus.js';
 import { S } from '../core/store.js';
 import { VIEWS } from './views/registry.js';
+import { auth } from '../core/auth.js';
+import { buildLoginOverlay, hideLoginOverlay } from './components/LoginModal.js';
+import { toast } from './components/toast.js';
 
 const NAVBTN = {};
 
@@ -19,6 +22,7 @@ export const clearAlert=()=>{const b=NAVBTN[current];if(b)b.classList.remove('ha
 
 export function buildNav(){
   const nav=$('#nav');
+  nav.innerHTML = '';
   NAV.forEach(([g,keys])=>{
     nav.appendChild(el('div','rail-group',g));
     keys.forEach(k=>{
@@ -31,9 +35,27 @@ export function buildNav(){
       nav.appendChild(b);
     });
   });
+  updateNavPermissions();
 }
+
+export function updateNavPermissions() {
+  const user = auth.getCurrentUser();
+  ORDER.forEach(k => {
+    const btn = NAVBTN[k];
+    if (!btn) return;
+    const allowed = user ? auth.hasAccess(k) : false;
+    btn.classList.toggle('restricted', !allowed);
+    if (!allowed) {
+      btn.title = `Restricted to Maintenance Engineer role`;
+    } else {
+      btn.removeAttribute('title');
+    }
+  });
+}
+
 export function buildViews(){
   const host=$('#views');
+  host.innerHTML = '';
   ORDER.forEach(k=>{
     const v=VIEWS[k];
     const sec=el('section','view');sec.id='view-'+k;
@@ -48,10 +70,23 @@ export function buildViews(){
     host.appendChild(sec);
   });
 }
+
 export function route(k){
-  if(!VIEWS[k])return;
-  current=k;
+  if(!auth.isAuthenticated()){
+    buildLoginOverlay(() => route('overview'));
+    return;
+  }
+
   const v=VIEWS[k];
+  if(!auth.hasAccess(k)){
+    const user = auth.getCurrentUser();
+    auth.logEvent('unauthorized_api', user ? user.username : 'Guest', user ? user.role : 'Guest', `Unauthorized navigation attempt to restricted view '${k}'`, 2);
+    toast(`Access Denied: ${v ? v.nav : k} requires Maintenance Engineer role`);
+    return;
+  }
+
+  if(!v)return;
+  current=k;
   if(!v._built){ v._host.appendChild(v.build()); v._built=true; }
   ORDER.forEach(x=>{
     VIEWS[x]._host.classList.toggle('active',x===k);
@@ -70,4 +105,14 @@ bus.on('alarm',e=>{
   const k=map[e.sys]||'faults';
   const b=NAVBTN[k];
   if(b&&current!==k)b.classList.add('has-alert');
+});
+
+/* --- auth state change --------------------------------------------- */
+bus.on('auth_change', ({ authenticated }) => {
+  updateNavPermissions();
+  if (!authenticated) {
+    buildLoginOverlay(() => route('overview'));
+  } else {
+    hideLoginOverlay();
+  }
 });

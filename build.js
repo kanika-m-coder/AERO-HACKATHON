@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ORDER = [
   'src/core/util.js',
   'src/core/EventBus.js',
+  'src/core/auth.js',
   'src/backend/limits.js',
   'src/backend/faults.js',
   'src/backend/profiles.js',
@@ -27,6 +28,7 @@ const ORDER = [
   'src/ui/components/TimeChart.js',
   'src/ui/components/toast.js',
   'src/ui/components/log.js',
+  'src/ui/components/LoginModal.js',
   'src/ui/views/registry.js',
   'src/ui/views/overview.js',
   'src/ui/views/twin.js',

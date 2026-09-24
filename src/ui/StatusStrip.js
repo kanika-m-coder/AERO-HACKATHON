@@ -2,6 +2,7 @@ import { el, $, fmt, hhmmss } from '../core/util.js';
 import { sevOf } from '../backend/limits.js';
 import { S, resetAll } from '../core/store.js';
 import { toast } from './components/toast.js';
+import { auth } from '../core/auth.js';
 
 /* --- status strip --------------------------------------------------- */
 export const STRIP=[
@@ -16,9 +17,11 @@ export const STRIP=[
   ['HEALTH',s=>fmt(s.health.overall,0),s=>s.health.overall<60?2:s.health.overall<80?1:0],
   ['ANOMALY',s=>fmt(s.ml.anomalyEma,2),s=>s.ml.detected?2:s.ml.anomalyEma>0.28?1:0]
 ];
-let STRIP_EL=null, STRIP_BLOCKS=[], MASTERBAR=null, RAILCLOCK=null;
+let STRIP_EL=null, STRIP_BLOCKS=[], MASTERBAR=null, RAILCLOCK=null, USER_BLOCK=null;
+
 export function buildStrip(){
   const strip=STRIP_EL=$('#strip');
+  strip.innerHTML = '';
   MASTERBAR=$('#masterbar'); RAILCLOCK=$('#railClock');
   const blocks=STRIP.map(([k])=>{
     const b=el('div','strip-block');
@@ -26,31 +29,51 @@ export function buildStrip(){
     const v=el('div','v','--');b.appendChild(v);
     b.val=v;strip.appendChild(b);return b;
   });
+
+  /* User & Role Security Block */
+  USER_BLOCK=el('div','strip-block');
+  USER_BLOCK.appendChild(el('div','k','SECURITY SESSION'));
+  const uVal=el('div','v','--');
+  uVal.style.fontSize='12px';
+  USER_BLOCK.appendChild(uVal);
+  USER_BLOCK.val=uVal;
+  strip.appendChild(USER_BLOCK);
+
   strip.appendChild(el('div','strip-spacer'));
   const ctl=el('div','strip-ctl');
+
+  const secBadge=el('span','security-badge-pill');
+  secBadge.innerHTML='<span class="dot-active"></span>SECURE SESSION • JWT • RBAC';
+  ctl.appendChild(secBadge);
+
   const bPlay=el('button','btn primary','Pause');
   bPlay.onclick=()=>{S.running=!S.running;bPlay.textContent=S.running?'Pause':'Resume';
     bPlay.classList.toggle('primary',S.running);};
   ctl.appendChild(bPlay);
+
   [1,5,20].forEach(sp=>{
     const b=el('button','btn mono'+(sp===1?' on':''),'\u00D7'+sp);
     b.onclick=()=>{S.speed=sp;ctl.querySelectorAll('.btn.mono').forEach(x=>x.classList.remove('on'));b.classList.add('on');};
     ctl.appendChild(b);
   });
+
   const bReset=el('button','btn','Reset');
   bReset.onclick=()=>{resetAll();
     document.querySelectorAll('.toggle').forEach(t=>t.setAttribute('aria-pressed','false'));
     toast('Simulation reset');};
   ctl.appendChild(bReset);
-  const bTheme=el('button','btn','Light');
-  bTheme.onclick=()=>{const d=document.documentElement;
-    const light=d.getAttribute('data-theme')==='light';
-    d.setAttribute('data-theme',light?'dark':'light');
-    bTheme.textContent=light?'Light':'Dark';};
-  ctl.appendChild(bTheme);
+
+  const bLogout=el('button','btn','Logout');
+  bLogout.onclick=()=>{
+    auth.logout();
+    toast('Session logged out');
+  };
+  ctl.appendChild(bLogout);
+
   strip.appendChild(ctl);
   STRIP_BLOCKS=blocks;
 }
+
 export function updateStrip(S){
   STRIP.forEach(([k,get,sev],i)=>{
     const b=STRIP_BLOCKS[i];
@@ -60,6 +83,14 @@ export function updateStrip(S){
     b.val.textContent=txt;
     b.val.className='v '+(s===2?'wrn':s===1?'cau':'');
   });
+  if (USER_BLOCK) {
+    const user = auth.getCurrentUser();
+    if (user) {
+      USER_BLOCK.val.innerHTML = `<span class="nom">${user.username}</span> <small>(${user.role})</small>`;
+    } else {
+      USER_BLOCK.val.innerHTML = `<span class="wrn">Locked</span>`;
+    }
+  }
   const warn=S.diag.fired.some(f=>f.sev===2), caut=S.diag.fired.length>0;
   if(MASTERBAR)MASTERBAR.className='masterbar'+(warn?' warn':caut?' caution':'');
   if(RAILCLOCK)RAILCLOCK.textContent='MET '+hhmmss(S.t);

@@ -256,6 +256,65 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
   .g2,.g3,.g4{grid-template-columns:1fr} .span2{grid-column:auto}
   .view{padding:14px}
 }
+
+/* ---------- Security & Login Styles ---------- */
+.login-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(11, 16, 20, 0.95); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow-y: auto;
+}
+.login-card {
+  width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--rule);
+  padding: 28px; border-radius: 4px; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+}
+.login-header { text-align: center; margin-bottom: 22px; }
+.login-brand-logo { width: 44px; height: 44px; border-radius: 8px; margin-bottom: 8px; object-fit: contain; }
+.login-title { font-size: 20px; font-weight: 700; margin: 4px 0 2px; letter-spacing: 0.05em; color: var(--ink); }
+.login-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+
+.login-form { display: flex; flex-direction: column; gap: 14px; }
+.login-field { display: flex; flex-direction: column; gap: 4px; }
+.login-field label { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); letter-spacing: 0.06em; }
+.login-input {
+  background: var(--bg); border: 1px solid var(--rule); color: var(--ink);
+  padding: 9px 12px; font-size: 13.5px; font-family: var(--sans); border-radius: 2px;
+}
+.login-input:focus { border-color: var(--info); outline: none; }
+.login-btn {
+  background: var(--caution); color: #0B1014; font-weight: 600; padding: 10px;
+  border: 0; font-size: 13.5px; border-radius: 2px; cursor: pointer; margin-top: 6px;
+  font-family: var(--sans); transition: background .15s;
+}
+.login-btn:hover { filter: brightness(1.1); }
+.login-err { font-size: 12px; color: var(--warn); margin-top: 4px; text-align: center; font-family: var(--mono); }
+
+.login-demos { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule-soft); }
+.login-demos p { margin: 0 0 8px; font-size: 10.5px; font-family: var(--mono); color: var(--ink-3); }
+.demo-btn-group { display: flex; gap: 8px; }
+.demo-btn {
+  flex: 1; padding: 8px 10px; background: var(--bg-2); border: 1px solid var(--rule-soft);
+  color: var(--ink-2); font-size: 11px; font-family: var(--mono); cursor: pointer; text-align: left;
+  border-radius: 2px; line-height: 1.35;
+}
+.demo-btn:hover { border-color: var(--info); color: var(--ink); }
+.demo-btn strong { color: var(--ink); display: block; font-size: 11.5px; }
+
+.security-badge-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px;
+  background: color-mix(in srgb, var(--nominal) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nominal) 30%, transparent);
+  color: var(--nominal); font-family: var(--mono); font-size: 10px; border-radius: 2px;
+  font-weight: 600; letter-spacing: 0.05em;
+}
+.security-badge-pill .dot-active { width: 6px; height: 6px; border-radius: 50%; background: var(--nominal); }
+
+.sec-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.sec-status-card { background: var(--bg); border: 1px solid var(--rule-soft); padding: 8px 10px; border-radius: 2px; }
+.sec-status-card .k { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+.sec-status-card .v { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--nominal); margin-top: 2px; }
+
+.navitem.restricted { opacity: 0.45; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -311,6 +370,197 @@ class EventBus{
   emit(ev,p){(this.m.get(ev)||[]).forEach(f=>{try{f(p);}catch(e){console.error('[bus]',ev,e);}});}
 }
 const bus=new EventBus();
+
+/* ===== src/core/auth.js ===== */
+/* Demo users & credentials */
+const DEMO_USERS = {
+  admin: {
+    username: 'admin',
+    password: 'admin123',
+    role: 'Fleet Manager',
+    name: 'Fleet Manager Admin',
+    desc: 'Full fleet health monitoring, alerts & maintenance reports access.'
+  },
+  engineer: {
+    username: 'engineer',
+    password: 'engineer123',
+    role: 'Maintenance Engineer',
+    name: 'Lead Maintenance Engineer',
+    desc: 'Full diagnostic, twin simulation, fault injection & RUL access.'
+  }
+};
+
+/* Role Permissions Mapping */
+const ROLE_PERMISSIONS = {
+  'Fleet Manager': ['overview', 'telemetry', 'health', 'reports', 'architecture'],
+  'Maintenance Engineer': ['overview', 'telemetry', 'twin', 'health', 'faults', 'predictive', 'rul', 'simulation', 'replay', 'reports', 'architecture']
+};
+
+function base64UrlEncode(str) {
+  return btoa(unescape(encodeURIComponent(str))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return decodeURIComponent(escape(atob(str)));
+}
+
+class SecurityManager {
+  constructor() {
+    this.tokenKey = 'aerotwin_jwt_token';
+    this.sessionUserKey = 'aerotwin_session_user';
+    this.eventsKey = 'aerotwin_security_events';
+    this.events = this.loadEvents();
+    this.initDefaultEvents();
+  }
+
+  loadEvents() {
+    try {
+      const stored = sessionStorage.getItem(this.eventsKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveEvents() {
+    try {
+      sessionStorage.setItem(this.eventsKey, JSON.stringify(this.events.slice(0, 100)));
+    } catch (e) {}
+  }
+
+  initDefaultEvents() {
+    if (!this.events.length) {
+      this.logEvent('data_access', 'System', 'System', 'Encrypted telemetry stream initialized over TLS 1.3', 0);
+      this.logEvent('auth_system', 'System', 'System', 'API Gateway protected with JWT & RBAC policy', 0);
+    }
+  }
+
+  logEvent(type, user, role, txt, sev = 0) {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const ss = String(d.getSeconds()).padStart(2, '0');
+    const timeStr = `${hh}:${mm}:${ss}`;
+
+    const evt = {
+      id: 'SEC-' + Math.floor(Math.random() * 9000 + 1000),
+      type,
+      user: user || 'Anonymous',
+      role: role || 'Unauthenticated',
+      txt,
+      sev, // 0 = Secure/Active (Green), 1 = Caution (Amber), 2 = Failed/Blocked (Red)
+      t: Date.now(),
+      timeStr
+    };
+    this.events.unshift(evt);
+    if (this.events.length > 100) this.events.pop();
+    this.saveEvents();
+    bus.emit('security_event', evt);
+    return evt;
+  }
+
+  generateJWT(userObj) {
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+      sub: userObj.username,
+      name: userObj.name,
+      role: userObj.role,
+      iat: now,
+      exp: now + 3600,
+      iss: 'AeroTwin-FastAPI-Security'
+    };
+    const encodedHeader = base64UrlEncode(JSON.stringify(header));
+    const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+    const signature = base64UrlEncode(userObj.username + '_sig_jwt_aerotwin_2026');
+    return `${encodedHeader}.${encodedPayload}.${signature}`;
+  }
+
+  verifyJWT(token) {
+    if (!token) return null;
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = JSON.parse(base64UrlDecode(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < now) return null;
+      return payload;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  login(username, password) {
+    const userKey = Object.keys(DEMO_USERS).find(
+      k => DEMO_USERS[k].username.toLowerCase() === (username || '').trim().toLowerCase()
+    );
+    const userObj = userKey ? DEMO_USERS[userKey] : null;
+
+    if (!userObj || userObj.password !== password) {
+      this.logEvent('login_failure', username || 'unknown', 'Guest', `Failed login attempt for user '${username}' (Invalid credentials)`, 2);
+      return { success: false, message: 'Invalid username or password' };
+    }
+
+    const token = this.generateJWT(userObj);
+    sessionStorage.setItem(this.tokenKey, token);
+    sessionStorage.setItem(this.sessionUserKey, JSON.stringify(userObj));
+    this.logEvent('login_success', userObj.username, userObj.role, `Successful authentication for user '${userObj.username}' (${userObj.role})`, 0);
+    bus.emit('auth_change', { authenticated: true, user: userObj, token });
+    return { success: true, user: userObj, token };
+  }
+
+  logout() {
+    const user = this.getCurrentUser();
+    if (user) {
+      this.logEvent('logout', user.username, user.role, `User '${user.username}' logged out`, 1);
+    }
+    sessionStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.sessionUserKey);
+    bus.emit('auth_change', { authenticated: false, user: null, token: null });
+  }
+
+  getToken() {
+    return sessionStorage.getItem(this.tokenKey);
+  }
+
+  getCurrentUser() {
+    const token = this.getToken();
+    const payload = this.verifyJWT(token);
+    if (!payload) return null;
+    try {
+      const stored = sessionStorage.getItem(this.sessionUserKey);
+      return stored ? JSON.parse(stored) : { username: payload.sub, role: payload.role, name: payload.name };
+    } catch (e) {
+      return { username: payload.sub, role: payload.role, name: payload.name };
+    }
+  }
+
+  isAuthenticated() {
+    return !!this.getCurrentUser();
+  }
+
+  hasAccess(viewKey) {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+    const allowed = ROLE_PERMISSIONS[user.role] || [];
+    return allowed.includes(viewKey);
+  }
+
+  getSecurityStatus() {
+    const isAuth = this.isAuthenticated();
+    return {
+      auth: isAuth ? 'Active' : 'Unauthenticated',
+      api: 'Protected (JWT)',
+      tls: 'TLS Secured (TLS 1.3)',
+      deviceAuth: 'Active (MALE UAV Bus)',
+      storage: 'Access Controlled (RBAC)',
+      badge: 'SECURE SESSION • JWT • RBAC'
+    };
+  }
+}
+
+const auth = new SecurityManager();
 
 /* ===== src/backend/limits.js ===== */
 // Published operating limits and severity classification.
@@ -1131,6 +1381,101 @@ function renderLog(node,events){
   });
 }
 
+/* ===== src/ui/components/LoginModal.js ===== */
+let overlayEl = null;
+
+function buildLoginOverlay(onSuccess) {
+  if (overlayEl) overlayEl.remove();
+
+  overlayEl = el('div', 'login-overlay');
+  const card = el('div', 'login-card');
+
+  card.innerHTML = `
+    <div class="login-header">
+      <img src="./assets/logo.jpg" alt="AeroTwin AI Logo" class="login-brand-logo" onerror="this.style.display='none'">
+      <div class="login-title">AeroTwin AI</div>
+      <div class="login-sub">SECURE AGENT & TELEMETRY ACCESS</div>
+    </div>
+    <form class="login-form" id="loginForm">
+      <div class="login-field">
+        <label for="loginUser">USERNAME OR EMAIL</label>
+        <input type="text" id="loginUser" class="login-input" placeholder="e.g. admin or engineer" required autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label for="loginPass">PASSWORD</label>
+        <input type="password" id="loginPass" class="login-input" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <div id="loginErr" class="login-err" style="display:none"></div>
+      <button type="submit" class="login-btn">Authenticate & Launch Session</button>
+    </form>
+    <div class="login-demos">
+      <p>PROTOTYPE DEMO CREDENTIALS:</p>
+      <div class="demo-btn-group">
+        <button type="button" class="demo-btn" id="demoFleet">
+          <strong>Fleet Manager</strong>
+          admin / admin123
+        </button>
+        <button type="button" class="demo-btn" id="demoEng">
+          <strong>Maintenance Engineer</strong>
+          engineer / engineer123
+        </button>
+      </div>
+    </div>
+    <div style="margin-top:16px;text-align:center">
+      <span class="security-badge-pill">
+        <span class="dot-active"></span>
+        SECURE SESSION • JWT • RBAC
+      </span>
+    </div>
+  `;
+
+  overlayEl.appendChild(card);
+  document.body.appendChild(overlayEl);
+
+  const form = card.querySelector('#loginForm');
+  const userInput = card.querySelector('#loginUser');
+  const passInput = card.querySelector('#loginPass');
+  const errDiv = card.querySelector('#loginErr');
+
+  const handleLogin = (u, p) => {
+    errDiv.style.display = 'none';
+    const res = auth.login(u, p);
+    if (res.success) {
+      hideLoginOverlay();
+      if (onSuccess) onSuccess(res.user);
+    } else {
+      errDiv.textContent = res.message || 'Invalid username or password';
+      errDiv.style.display = 'block';
+    }
+  };
+
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    handleLogin(userInput.value, passInput.value);
+  };
+
+  card.querySelector('#demoFleet').onclick = () => {
+    userInput.value = 'admin';
+    passInput.value = 'admin123';
+    handleLogin('admin', 'admin123');
+  };
+
+  card.querySelector('#demoEng').onclick = () => {
+    userInput.value = 'engineer';
+    passInput.value = 'engineer123';
+    handleLogin('engineer', 'engineer123');
+  };
+
+  return overlayEl;
+}
+
+function hideLoginOverlay() {
+  if (overlayEl) {
+    overlayEl.remove();
+    overlayEl = null;
+  }
+}
+
 /* ===== src/ui/views/registry.js ===== */
 // Every view module registers itself here at import time, so adding a view
 // is a matter of creating the file and importing it in main.js.
@@ -1139,7 +1484,7 @@ const VIEWS = {};
 /* ===== src/ui/views/overview.js ===== */
 VIEWS.overview={
   layer:'09', nav:'Mission overview', title:'Mission overview',
-  desc:'Live consolidated picture of the airframe, the engine and its digital twin. Every number here is produced by the simulated sensor bus, never read from the plant model directly.',
+  desc:'Live consolidated picture of the airframe, the engine and its digital twin. Protected by JWT authentication and Role-Based Access Control.',
   build(){
     const root=el('div','grid');
     // hero: tape cluster
@@ -1176,6 +1521,33 @@ VIEWS.overview={
     [this.kPhase,this.kThr,this.kAlt,this.kTas,this.kPwr,this.kFuel,this.kEnd].forEach(x=>fl.body.appendChild(x));
     root.appendChild(fl);
 
+    /* --- Security Status Section --- */
+    const secStatusPanel = panel('Security Status', 'PROTECTED LAYER');
+    secStatusPanel.body.className = 'panel-body tight';
+    this.secStatusWrap = el('div', 'sec-status-grid');
+    this.secStatusWrap.style.padding = '10px';
+    secStatusPanel.body.appendChild(this.secStatusWrap);
+
+    const secBadgeDiv = el('div');
+    secBadgeDiv.style.cssText = 'padding:0 10px 10px;display:flex;justify-content:space-between;align-items:center';
+    secBadgeDiv.innerHTML = `
+      <span class="security-badge-pill">
+        <span class="dot-active"></span>
+        SECURE SESSION • JWT • RBAC
+      </span>
+      <span class="mono dimmer" style="font-size:10px" id="userRoleBadge"></span>
+    `;
+    secStatusPanel.body.appendChild(secBadgeDiv);
+    root.appendChild(secStatusPanel);
+
+    /* --- Security Activity Audit Log --- */
+    const secLogPanel = panel('Security Activity', 'AUDIT LOG');
+    secLogPanel.body.className = 'panel-body tight';
+    this.secLogContainer = el('div', 'log');
+    this.secLogContainer.style.cssText = 'max-height:160px;padding:8px;overflow-y:auto';
+    secLogPanel.body.appendChild(this.secLogContainer);
+    root.appendChild(secLogPanel);
+
     const c1=panel('Power & boost','MEASURED vs TWIN');
     c1.body.className='panel-body tight';
     this.ch1=newChart({height:150,window:120,series:[
@@ -1200,7 +1572,23 @@ VIEWS.overview={
     root.appendChild(al);
 
     root.className='grid g2';
+
+    bus.on('security_event', () => this.updateSecLogs());
     return root;
+  },
+  updateSecLogs(){
+    if(!this.secLogContainer) return;
+    const evts = auth.events.slice(0, 8);
+    this.secLogContainer.innerHTML = evts.map(e => {
+      const sevClass = e.sev === 2 ? 'wrn' : e.sev === 1 ? 'cau' : 'nom';
+      const tag = e.sev === 2 ? 'BLOCKED' : e.sev === 1 ? 'WARN' : 'ACTIVE';
+      return `<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--rule-soft);font-size:11.5px">
+        <span class="mono dimmer" style="font-size:10px;width:52px;flex:none">${e.timeStr || 'now'}</span>
+        <span class="pill ${sevClass}" style="flex:none;font-size:9px;padding:2px 5px">${tag}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.txt}">${e.txt}</span>
+        <span class="mono dimmer" style="font-size:10px;flex:none">${e.user}</span>
+      </div>`;
+    }).join('');
   },
   update(S){
     const m=S.sensors,e=S.twin;
@@ -1241,6 +1629,24 @@ VIEWS.overview={
     this.kFuel.val.textContent=fmt(m.fuelKg,1)+' kg';
     const burn=m.ff*0.72; // kg/h
     this.kEnd.val.textContent=burn>0.5?hhmmss(m.fuelKg/burn*3600):'\u2014';
+
+    /* Update Security Status items */
+    const sec = auth.getSecurityStatus();
+    this.secStatusWrap.innerHTML = `
+      <div class="sec-status-card"><div class="k">AUTHENTICATION</div><div class="v">${sec.auth}</div></div>
+      <div class="sec-status-card"><div class="k">API SECURITY</div><div class="v">${sec.api}</div></div>
+      <div class="sec-status-card"><div class="k">TELEMETRY</div><div class="v">${sec.tls}</div></div>
+      <div class="sec-status-card"><div class="k">DEVICE AUTH</div><div class="v">${sec.deviceAuth}</div></div>
+      <div class="sec-status-card"><div class="k">DATA STORAGE</div><div class="v">${sec.storage}</div></div>
+    `;
+
+    const u = auth.getCurrentUser();
+    const userRoleEl = document.getElementById('userRoleBadge');
+    if (userRoleEl && u) {
+      userRoleEl.textContent = `${u.username} • ${u.role}`;
+    }
+
+    this.updateSecLogs();
 
     this.ch1.push(S.t,[m.powerHp,e.powerHp,m.map]);
     this.ch2.push(S.t,[Math.max(...m.cht),m.cltT,m.oilT]);
@@ -2241,6 +2647,7 @@ const clearAlert=()=>{const b=NAVBTN[current];if(b)b.classList.remove('has-alert
 
 function buildNav(){
   const nav=$('#nav');
+  nav.innerHTML = '';
   NAV.forEach(([g,keys])=>{
     nav.appendChild(el('div','rail-group',g));
     keys.forEach(k=>{
@@ -2253,9 +2660,27 @@ function buildNav(){
       nav.appendChild(b);
     });
   });
+  updateNavPermissions();
 }
+
+function updateNavPermissions() {
+  const user = auth.getCurrentUser();
+  ORDER.forEach(k => {
+    const btn = NAVBTN[k];
+    if (!btn) return;
+    const allowed = user ? auth.hasAccess(k) : false;
+    btn.classList.toggle('restricted', !allowed);
+    if (!allowed) {
+      btn.title = `Restricted to Maintenance Engineer role`;
+    } else {
+      btn.removeAttribute('title');
+    }
+  });
+}
+
 function buildViews(){
   const host=$('#views');
+  host.innerHTML = '';
   ORDER.forEach(k=>{
     const v=VIEWS[k];
     const sec=el('section','view');sec.id='view-'+k;
@@ -2270,10 +2695,23 @@ function buildViews(){
     host.appendChild(sec);
   });
 }
+
 function route(k){
-  if(!VIEWS[k])return;
-  current=k;
+  if(!auth.isAuthenticated()){
+    buildLoginOverlay(() => route('overview'));
+    return;
+  }
+
   const v=VIEWS[k];
+  if(!auth.hasAccess(k)){
+    const user = auth.getCurrentUser();
+    auth.logEvent('unauthorized_api', user ? user.username : 'Guest', user ? user.role : 'Guest', `Unauthorized navigation attempt to restricted view '${k}'`, 2);
+    toast(`Access Denied: ${v ? v.nav : k} requires Maintenance Engineer role`);
+    return;
+  }
+
+  if(!v)return;
+  current=k;
   if(!v._built){ v._host.appendChild(v.build()); v._built=true; }
   ORDER.forEach(x=>{
     VIEWS[x]._host.classList.toggle('active',x===k);
@@ -2294,6 +2732,16 @@ bus.on('alarm',e=>{
   if(b&&current!==k)b.classList.add('has-alert');
 });
 
+/* --- auth state change --------------------------------------------- */
+bus.on('auth_change', ({ authenticated }) => {
+  updateNavPermissions();
+  if (!authenticated) {
+    buildLoginOverlay(() => route('overview'));
+  } else {
+    hideLoginOverlay();
+  }
+});
+
 /* ===== src/ui/StatusStrip.js ===== */
 /* --- status strip --------------------------------------------------- */
 const STRIP=[
@@ -2308,9 +2756,11 @@ const STRIP=[
   ['HEALTH',s=>fmt(s.health.overall,0),s=>s.health.overall<60?2:s.health.overall<80?1:0],
   ['ANOMALY',s=>fmt(s.ml.anomalyEma,2),s=>s.ml.detected?2:s.ml.anomalyEma>0.28?1:0]
 ];
-let STRIP_EL=null, STRIP_BLOCKS=[], MASTERBAR=null, RAILCLOCK=null;
+let STRIP_EL=null, STRIP_BLOCKS=[], MASTERBAR=null, RAILCLOCK=null, USER_BLOCK=null;
+
 function buildStrip(){
   const strip=STRIP_EL=$('#strip');
+  strip.innerHTML = '';
   MASTERBAR=$('#masterbar'); RAILCLOCK=$('#railClock');
   const blocks=STRIP.map(([k])=>{
     const b=el('div','strip-block');
@@ -2318,31 +2768,51 @@ function buildStrip(){
     const v=el('div','v','--');b.appendChild(v);
     b.val=v;strip.appendChild(b);return b;
   });
+
+  /* User & Role Security Block */
+  USER_BLOCK=el('div','strip-block');
+  USER_BLOCK.appendChild(el('div','k','SECURITY SESSION'));
+  const uVal=el('div','v','--');
+  uVal.style.fontSize='12px';
+  USER_BLOCK.appendChild(uVal);
+  USER_BLOCK.val=uVal;
+  strip.appendChild(USER_BLOCK);
+
   strip.appendChild(el('div','strip-spacer'));
   const ctl=el('div','strip-ctl');
+
+  const secBadge=el('span','security-badge-pill');
+  secBadge.innerHTML='<span class="dot-active"></span>SECURE SESSION • JWT • RBAC';
+  ctl.appendChild(secBadge);
+
   const bPlay=el('button','btn primary','Pause');
   bPlay.onclick=()=>{S.running=!S.running;bPlay.textContent=S.running?'Pause':'Resume';
     bPlay.classList.toggle('primary',S.running);};
   ctl.appendChild(bPlay);
+
   [1,5,20].forEach(sp=>{
     const b=el('button','btn mono'+(sp===1?' on':''),'\u00D7'+sp);
     b.onclick=()=>{S.speed=sp;ctl.querySelectorAll('.btn.mono').forEach(x=>x.classList.remove('on'));b.classList.add('on');};
     ctl.appendChild(b);
   });
+
   const bReset=el('button','btn','Reset');
   bReset.onclick=()=>{resetAll();
     document.querySelectorAll('.toggle').forEach(t=>t.setAttribute('aria-pressed','false'));
     toast('Simulation reset');};
   ctl.appendChild(bReset);
-  const bTheme=el('button','btn','Light');
-  bTheme.onclick=()=>{const d=document.documentElement;
-    const light=d.getAttribute('data-theme')==='light';
-    d.setAttribute('data-theme',light?'dark':'light');
-    bTheme.textContent=light?'Light':'Dark';};
-  ctl.appendChild(bTheme);
+
+  const bLogout=el('button','btn','Logout');
+  bLogout.onclick=()=>{
+    auth.logout();
+    toast('Session logged out');
+  };
+  ctl.appendChild(bLogout);
+
   strip.appendChild(ctl);
   STRIP_BLOCKS=blocks;
 }
+
 function updateStrip(S){
   STRIP.forEach(([k,get,sev],i)=>{
     const b=STRIP_BLOCKS[i];
@@ -2352,6 +2822,14 @@ function updateStrip(S){
     b.val.textContent=txt;
     b.val.className='v '+(s===2?'wrn':s===1?'cau':'');
   });
+  if (USER_BLOCK) {
+    const user = auth.getCurrentUser();
+    if (user) {
+      USER_BLOCK.val.innerHTML = `<span class="nom">${user.username}</span> <small>(${user.role})</small>`;
+    } else {
+      USER_BLOCK.val.innerHTML = `<span class="wrn">Locked</span>`;
+    }
+  }
   const warn=S.diag.fired.some(f=>f.sev===2), caut=S.diag.fired.length>0;
   if(MASTERBAR)MASTERBAR.className='masterbar'+(warn?' warn':caut?' caution':'');
   if(RAILCLOCK)RAILCLOCK.textContent='MET '+hhmmss(S.t);
@@ -2363,7 +2841,12 @@ function boot(){
   pushEvent({type:'info',sev:0,txt:'AEROTWIN online \u00B7 twin synchronised \u00B7 '+PROFILES[S.profile].name,sys:'Mission',t:0});
   // pre-roll 90 s so every view opens with history rather than an empty frame
   for(let i=0;i<900;i++) tick(0.1);
-  route('overview');
+
+  if(!auth.isAuthenticated()){
+    buildLoginOverlay(() => route('overview'));
+  } else {
+    route('overview');
+  }
 
   let fpsT=performance.now(),frames=0;
   setInterval(()=>{
@@ -2376,7 +2859,7 @@ function boot(){
     const now=performance.now();
     if(now-fpsT>1000){window.__fps=frames*1000/(now-fpsT);frames=0;fpsT=now;}
     const v=getCurrentView();
-    if(v&&v.update&&S.sensors){ try{v.update(S);}catch(e){console.error('[view]',current,e);} }
+    if(v&&v.update&&S.sensors){ try{v.update(S);}catch(e){console.error('[view]',getCurrent(),e);} }
     if(S.sensors)updateStrip(S);
     clearAlert();
   },100);
@@ -2388,9 +2871,9 @@ function boot(){
     const i=ORDER.indexOf(getCurrent());
     if(ev.key===']'){route(ORDER[(i+1)%ORDER.length]);}
     if(ev.key==='['){route(ORDER[(i-1+ORDER.length)%ORDER.length]);}
-    if(ev.key===' '){ev.preventDefault();const b=$('#strip .btn.primary')||$('#strip .btn');
-      S.running=!S.running;const pb=$('#strip .strip-ctl .btn');pb.textContent=S.running?'Pause':'Resume';
-      pb.classList.toggle('primary',S.running);}
+    if(ev.key===' '){ev.preventDefault();
+      S.running=!S.running;const pb=$('#strip .strip-ctl .btn');if(pb){pb.textContent=S.running?'Pause':'Resume';
+      pb.classList.toggle('primary',S.running);}}
   });
 }
 

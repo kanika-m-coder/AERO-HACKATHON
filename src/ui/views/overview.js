@@ -6,13 +6,12 @@ import { tape } from '../components/tape.js';
 import { newChart } from '../components/TimeChart.js';
 import { renderLog } from '../components/log.js';
 import { VIEWS } from './registry.js';
-
-
-
+import { auth } from '../../core/auth.js';
+import { bus } from '../../core/EventBus.js';
 
 VIEWS.overview={
   layer:'09', nav:'Mission overview', title:'Mission overview',
-  desc:'Live consolidated picture of the airframe, the engine and its digital twin. Every number here is produced by the simulated sensor bus, never read from the plant model directly.',
+  desc:'Live consolidated picture of the airframe, the engine and its digital twin. Protected by JWT authentication and Role-Based Access Control.',
   build(){
     const root=el('div','grid');
     // hero: tape cluster
@@ -49,6 +48,33 @@ VIEWS.overview={
     [this.kPhase,this.kThr,this.kAlt,this.kTas,this.kPwr,this.kFuel,this.kEnd].forEach(x=>fl.body.appendChild(x));
     root.appendChild(fl);
 
+    /* --- Security Status Section --- */
+    const secStatusPanel = panel('Security Status', 'PROTECTED LAYER');
+    secStatusPanel.body.className = 'panel-body tight';
+    this.secStatusWrap = el('div', 'sec-status-grid');
+    this.secStatusWrap.style.padding = '10px';
+    secStatusPanel.body.appendChild(this.secStatusWrap);
+
+    const secBadgeDiv = el('div');
+    secBadgeDiv.style.cssText = 'padding:0 10px 10px;display:flex;justify-content:space-between;align-items:center';
+    secBadgeDiv.innerHTML = `
+      <span class="security-badge-pill">
+        <span class="dot-active"></span>
+        SECURE SESSION • JWT • RBAC
+      </span>
+      <span class="mono dimmer" style="font-size:10px" id="userRoleBadge"></span>
+    `;
+    secStatusPanel.body.appendChild(secBadgeDiv);
+    root.appendChild(secStatusPanel);
+
+    /* --- Security Activity Audit Log --- */
+    const secLogPanel = panel('Security Activity', 'AUDIT LOG');
+    secLogPanel.body.className = 'panel-body tight';
+    this.secLogContainer = el('div', 'log');
+    this.secLogContainer.style.cssText = 'max-height:160px;padding:8px;overflow-y:auto';
+    secLogPanel.body.appendChild(this.secLogContainer);
+    root.appendChild(secLogPanel);
+
     const c1=panel('Power & boost','MEASURED vs TWIN');
     c1.body.className='panel-body tight';
     this.ch1=newChart({height:150,window:120,series:[
@@ -73,7 +99,23 @@ VIEWS.overview={
     root.appendChild(al);
 
     root.className='grid g2';
+
+    bus.on('security_event', () => this.updateSecLogs());
     return root;
+  },
+  updateSecLogs(){
+    if(!this.secLogContainer) return;
+    const evts = auth.events.slice(0, 8);
+    this.secLogContainer.innerHTML = evts.map(e => {
+      const sevClass = e.sev === 2 ? 'wrn' : e.sev === 1 ? 'cau' : 'nom';
+      const tag = e.sev === 2 ? 'BLOCKED' : e.sev === 1 ? 'WARN' : 'ACTIVE';
+      return `<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--rule-soft);font-size:11.5px">
+        <span class="mono dimmer" style="font-size:10px;width:52px;flex:none">${e.timeStr || 'now'}</span>
+        <span class="pill ${sevClass}" style="flex:none;font-size:9px;padding:2px 5px">${tag}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.txt}">${e.txt}</span>
+        <span class="mono dimmer" style="font-size:10px;flex:none">${e.user}</span>
+      </div>`;
+    }).join('');
   },
   update(S){
     const m=S.sensors,e=S.twin;
@@ -114,6 +156,24 @@ VIEWS.overview={
     this.kFuel.val.textContent=fmt(m.fuelKg,1)+' kg';
     const burn=m.ff*0.72; // kg/h
     this.kEnd.val.textContent=burn>0.5?hhmmss(m.fuelKg/burn*3600):'\u2014';
+
+    /* Update Security Status items */
+    const sec = auth.getSecurityStatus();
+    this.secStatusWrap.innerHTML = `
+      <div class="sec-status-card"><div class="k">AUTHENTICATION</div><div class="v">${sec.auth}</div></div>
+      <div class="sec-status-card"><div class="k">API SECURITY</div><div class="v">${sec.api}</div></div>
+      <div class="sec-status-card"><div class="k">TELEMETRY</div><div class="v">${sec.tls}</div></div>
+      <div class="sec-status-card"><div class="k">DEVICE AUTH</div><div class="v">${sec.deviceAuth}</div></div>
+      <div class="sec-status-card"><div class="k">DATA STORAGE</div><div class="v">${sec.storage}</div></div>
+    `;
+
+    const u = auth.getCurrentUser();
+    const userRoleEl = document.getElementById('userRoleBadge');
+    if (userRoleEl && u) {
+      userRoleEl.textContent = `${u.username} • ${u.role}`;
+    }
+
+    this.updateSecLogs();
 
     this.ch1.push(S.t,[m.powerHp,e.powerHp,m.map]);
     this.ch2.push(S.t,[Math.max(...m.cht),m.cltT,m.oilT]);

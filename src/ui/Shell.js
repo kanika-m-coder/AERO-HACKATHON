@@ -4,14 +4,20 @@ import { PROFILES } from '../backend/profiles.js';
 import { ORDER, route, buildNav, buildViews, getCurrent, getCurrentView, clearAlert } from './Router.js';
 import { buildStrip, updateStrip } from './StatusStrip.js';
 import { rafLoop } from './components/TimeChart.js';
-
+import { auth } from '../core/auth.js';
+import { buildLoginOverlay } from './components/LoginModal.js';
 
 export function boot(){
   buildNav();buildViews();buildStrip();
   pushEvent({type:'info',sev:0,txt:'AEROTWIN online \u00B7 twin synchronised \u00B7 '+PROFILES[S.profile].name,sys:'Mission',t:0});
   // pre-roll 90 s so every view opens with history rather than an empty frame
   for(let i=0;i<900;i++) tick(0.1);
-  route('overview');
+
+  if(!auth.isAuthenticated()){
+    buildLoginOverlay(() => route('overview'));
+  } else {
+    route('overview');
+  }
 
   let fpsT=performance.now(),frames=0;
   setInterval(()=>{
@@ -24,7 +30,7 @@ export function boot(){
     const now=performance.now();
     if(now-fpsT>1000){window.__fps=frames*1000/(now-fpsT);frames=0;fpsT=now;}
     const v=getCurrentView();
-    if(v&&v.update&&S.sensors){ try{v.update(S);}catch(e){console.error('[view]',current,e);} }
+    if(v&&v.update&&S.sensors){ try{v.update(S);}catch(e){console.error('[view]',getCurrent(),e);} }
     if(S.sensors)updateStrip(S);
     clearAlert();
   },100);
@@ -36,8 +42,8 @@ export function boot(){
     const i=ORDER.indexOf(getCurrent());
     if(ev.key===']'){route(ORDER[(i+1)%ORDER.length]);}
     if(ev.key==='['){route(ORDER[(i-1+ORDER.length)%ORDER.length]);}
-    if(ev.key===' '){ev.preventDefault();const b=$('#strip .btn.primary')||$('#strip .btn');
-      S.running=!S.running;const pb=$('#strip .strip-ctl .btn');pb.textContent=S.running?'Pause':'Resume';
-      pb.classList.toggle('primary',S.running);}
+    if(ev.key===' '){ev.preventDefault();
+      S.running=!S.running;const pb=$('#strip .strip-ctl .btn');if(pb){pb.textContent=S.running?'Pause':'Resume';
+      pb.classList.toggle('primary',S.running);}}
   });
 }

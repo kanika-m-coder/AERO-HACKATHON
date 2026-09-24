@@ -67,7 +67,7 @@ export function buildLoginOverlay(onSuccess) {
         </select>
       </div>
       <div id="regErr" class="login-err" style="display:none"></div>
-      <button type="submit" class="login-btn" id="btnRegister" style="background:linear-gradient(135deg, #5AB7C9 0%, #1F7C8C 100%);color:#0B1014">
+      <button type="submit" class="login-btn btn-register" id="btnRegister">
         <span>Create Account & Sign In</span>
       </button>
       <div style="text-align:center;margin-top:8px">

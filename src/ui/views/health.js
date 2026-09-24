@@ -6,6 +6,7 @@ import { panel, kv, bar } from '../components/panel.js';
 import { cssv, healthColor, sevClass } from '../components/style.js';
 import { newChart } from '../components/TimeChart.js';
 import { VIEWS } from './registry.js';
+import { evaluateEngineRange } from '../../backend/engineRange.js';
 
 
 VIEWS.health={
@@ -48,6 +49,17 @@ VIEWS.health={
     const nt=panel('Interpretation','AUTOMATED');
     this.notes=el('div');nt.body.appendChild(this.notes);
     root.appendChild(nt);
+
+    /* --- Engine Range (Engine Reference Values) Section --- */
+    const rangePanel = panel('Engine Range', 'ENGINE REFERENCE VALUES');
+    rangePanel.body.className = 'panel-body tight';
+    const rangeWrap = el('div', 'tbl-wrap');
+    this.rangeTbl = el('table');
+    rangeWrap.appendChild(this.rangeTbl);
+    rangePanel.body.appendChild(rangeWrap);
+    rangePanel.className += ' span2';
+    root.appendChild(rangePanel);
+
     this.hot=0;this.hi=0;
     return root;
   },
@@ -99,6 +111,39 @@ VIEWS.health={
       if(tbo>70)n.push('<p style="margin:0 0 8px">More than 70% of the 1200 h overhaul interval is consumed. Plan the shop visit against the limiting component in the RUL view.</p>');
       if(!n.length)n.push('<p style="margin:0" class="dim">All subsystems are above 80/100 and no exceedance is latched. Nothing requires attention at this time.</p>');
       this.notes.innerHTML=n.join('');
+
+      /* Render Engine Range Table in Health View */
+      const rangeData = evaluateEngineRange(m, S);
+      if (this.rangeTbl) {
+        this.rangeTbl.innerHTML = `
+          <thead>
+            <tr>
+              <th>Detected Parameter</th>
+              <th class="num">Actual Value</th>
+              <th class="num">Reference Value / Range</th>
+              <th class="num">Deviation</th>
+              <th style="width:110px;text-align:center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rangeData.map(r => {
+              const statusClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+              const pillClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+              return `
+                <tr>
+                  <td><strong>${r.param}</strong></td>
+                  <td class="num mono">${r.actualStr}</td>
+                  <td class="num mono dimmer">${r.refStr}</td>
+                  <td class="num mono ${statusClass}">${r.devStr}</td>
+                  <td style="text-align:center">
+                    <span class="pill ${pillClass}" style="font-size:10px;padding:2px 8px;font-weight:700">${r.status}</span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        `;
+      }
     }
   },
   seed(S){this.ch.clear();S.rec.buf.forEach(f=>this.ch.push(f.t,[f.health,null]));}

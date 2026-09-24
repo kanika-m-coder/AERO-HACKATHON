@@ -714,6 +714,157 @@ const sevOf=(key,v)=>{const L=LIMITS[key];if(!L||v==null)return 0;
   if(L.inverted)return v<=L.red?2:v<=L.caution?1:0;
   return v>=L.red?2:v>=L.caution?1:0;};
 
+/* ===== src/backend/engineRange.js ===== */
+// Engine Reference Values & Monitoring Logic (Engine Range)
+
+const ENGINE_REFERENCE_VALUES = {
+  rpm: {
+    name: 'RPM',
+    rated: 2700,
+    cruise75: 2450,
+    cruise65: 2350,
+    maxRotax: 5800,
+    unit: 'RPM'
+  },
+  oilTemp: {
+    name: 'Oil Temperature',
+    desiredC: 82, // ~180°F
+    desiredF: 180,
+    max912AF: 140, // °C
+    max912S: 130,  // °C
+    unit: '°C'
+  },
+  oilPress: {
+    name: 'Oil Pressure',
+    minPsi: 60,
+    maxPsi: 90,
+    unit: 'psi'
+  },
+  cht: {
+    name: 'CHT',
+    max912AF: 150, // °C
+    max912S: 135,  // °C
+    unit: '°C'
+  },
+  vib: {
+    name: 'Vibration',
+    unit: 'mm/s',
+    isoCaution: 7.1,
+    isoFault: 11.2
+  }
+};
+
+function evaluateEngineRange(m, S) {
+  const thr = S && S.cmd ? S.cmd.throttle : 0.66;
+  const phase = S && S.phase ? S.phase : 'CRUISE';
+
+  // 1. RPM Reference Selection based on active flight phase / operating condition
+  let rpmRef = 2450;
+  let rpmCondition = '75% Cruise';
+  if (phase === 'TAKEOFF' || thr > 0.9) {
+    rpmRef = 2700;
+    rpmCondition = 'Rated Operation';
+  } else if (phase === 'LOITER' || thr < 0.55) {
+    rpmRef = 2350;
+    rpmCondition = '65% Economy Cruise';
+  }
+
+  const actualRpm = Math.round(m.rpm);
+  const rpmDev = actualRpm - rpmRef;
+  let rpmStatus = 'HEALTHY';
+  if (actualRpm > ENGINE_REFERENCE_VALUES.rpm.maxRotax) {
+    rpmStatus = 'FAULT';
+  } else if (Math.abs(rpmDev) > 150) {
+    rpmStatus = 'ABNORMAL';
+  } else if (Math.abs(rpmDev) > 80) {
+    rpmStatus = 'WARNING';
+  }
+
+  // 2. Oil Pressure (1 bar ≈ 14.5038 psi)
+  const actualOilPsi = (m.oilP * 14.5038);
+  let oilPStatus = 'HEALTHY';
+  let oilPDevStr = '0.0 psi';
+  if (actualOilPsi < 60) {
+    oilPStatus = 'FAULT';
+    oilPDevStr = `${(actualOilPsi - 60).toFixed(1)} psi`;
+  } else if (actualOilPsi > 90) {
+    oilPStatus = 'FAULT';
+    oilPDevStr = `+${(actualOilPsi - 90).toFixed(1)} psi`;
+  } else {
+    oilPDevStr = 'Nominal';
+  }
+
+  // 3. Oil Temperature (Desired 82°C / 180°F)
+  const actualOilC = m.oilT;
+  const oilTDev = actualOilC - 82;
+  let oilTStatus = 'HEALTHY';
+  if (actualOilC > 130 || actualOilC < 40) {
+    oilTStatus = 'FAULT';
+  } else if (Math.abs(oilTDev) > 18) {
+    oilTStatus = 'WARNING';
+  }
+
+  // 4. Cylinder-Head Temperature (CHT Max 135°C / 150°C)
+  const actualChtMax = Math.max(...(m.cht || [0]));
+  const chtLimit = 135;
+  const chtDev = actualChtMax - chtLimit;
+  let chtStatus = 'HEALTHY';
+  if (actualChtMax > 150) {
+    chtStatus = 'FAULT';
+  } else if (actualChtMax > chtLimit) {
+    chtStatus = 'FAULT';
+  } else if (actualChtMax > 120) {
+    chtStatus = 'WARNING';
+  }
+
+  // 5. Vibration (ISO 10816 standard parameter monitoring without fixed 5 mm/s)
+  const actualVib = m.vibRms;
+  let vibStatus = 'HEALTHY';
+  if (actualVib > 11.2) {
+    vibStatus = 'FAULT';
+  } else if (actualVib > 7.1) {
+    vibStatus = 'ABNORMAL';
+  }
+
+  return [
+    {
+      param: 'RPM',
+      actualStr: `${actualRpm} RPM`,
+      refStr: `${rpmRef} RPM (${rpmCondition})`,
+      devStr: rpmDev === 0 ? '0 RPM' : `${rpmDev > 0 ? '+' : ''}${rpmDev} RPM`,
+      status: rpmStatus
+    },
+    {
+      param: 'Oil Pressure',
+      actualStr: `${actualOilPsi.toFixed(1)} psi`,
+      refStr: `60–90 psi`,
+      devStr: oilPDevStr,
+      status: oilPStatus
+    },
+    {
+      param: 'Oil Temperature',
+      actualStr: `${actualOilC.toFixed(1)}°C (${(actualOilC * 1.8 + 32).toFixed(0)}°F)`,
+      refStr: `82°C (180°F Desired)`,
+      devStr: `${oilTDev >= 0 ? '+' : ''}${oilTDev.toFixed(1)}°C`,
+      status: oilTStatus
+    },
+    {
+      param: 'CHT (Max Cylinder)',
+      actualStr: `${actualChtMax.toFixed(1)}°C`,
+      refStr: `Maximum 150°C (912 A/F) / 135°C (912 S)`,
+      devStr: chtDev > 0 ? `+${chtDev.toFixed(1)}°C` : 'Nominal',
+      status: chtStatus
+    },
+    {
+      param: 'Vibration',
+      actualStr: `${actualVib.toFixed(2)} mm/s`,
+      refStr: `ISO 10816 Baseline`,
+      devStr: actualVib > 7.1 ? `+${(actualVib - 7.1).toFixed(2)} mm/s` : 'Nominal',
+      status: vibStatus
+    }
+  ];
+}
+
 /* ===== src/backend/faults.js ===== */
 // Catalogue of seeded failure modes available to the injector.
 
@@ -1775,6 +1926,16 @@ VIEWS.overview={
     this.ch2.mount(c2.body);
     root.appendChild(c2);
 
+    /* --- Engine Range (Engine Reference Values) Section --- */
+    const rangePanel = panel('Engine Range', 'ENGINE REFERENCE VALUES & MONITORING STATUS');
+    rangePanel.body.className = 'panel-body tight';
+    const rangeWrap = el('div', 'tbl-wrap');
+    this.rangeTbl = el('table');
+    rangeWrap.appendChild(this.rangeTbl);
+    rangePanel.body.appendChild(rangeWrap);
+    rangePanel.className += ' span2';
+    root.appendChild(rangePanel);
+
     const al=panel('Recent events','LAST 12');
     this.log=el('div','log');al.body.appendChild(this.log);
     al.className+=' span2';
@@ -1856,6 +2017,39 @@ VIEWS.overview={
     }
 
     this.updateSecLogs();
+
+    /* Update Engine Range (Engine Reference Values) Table */
+    const rangeData = evaluateEngineRange(m, S);
+    if (this.rangeTbl) {
+      this.rangeTbl.innerHTML = `
+        <thead>
+          <tr>
+            <th>Detected Parameter</th>
+            <th class="num">Actual Value</th>
+            <th class="num">Reference Value / Range</th>
+            <th class="num">Deviation</th>
+            <th style="width:110px;text-align:center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rangeData.map(r => {
+            const statusClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+            const pillClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+            return `
+              <tr>
+                <td><strong>${r.param}</strong></td>
+                <td class="num mono">${r.actualStr}</td>
+                <td class="num mono dimmer">${r.refStr}</td>
+                <td class="num mono ${statusClass}">${r.devStr}</td>
+                <td style="text-align:center">
+                  <span class="pill ${pillClass}" style="font-size:10px;padding:2px 8px;font-weight:700">${r.status}</span>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      `;
+    }
 
     this.ch1.push(S.t,[m.powerHp,e.powerHp,m.map]);
     this.ch2.push(S.t,[Math.max(...m.cht),m.cltT,m.oilT]);
@@ -2153,6 +2347,17 @@ VIEWS.health={
     const nt=panel('Interpretation','AUTOMATED');
     this.notes=el('div');nt.body.appendChild(this.notes);
     root.appendChild(nt);
+
+    /* --- Engine Range (Engine Reference Values) Section --- */
+    const rangePanel = panel('Engine Range', 'ENGINE REFERENCE VALUES');
+    rangePanel.body.className = 'panel-body tight';
+    const rangeWrap = el('div', 'tbl-wrap');
+    this.rangeTbl = el('table');
+    rangeWrap.appendChild(this.rangeTbl);
+    rangePanel.body.appendChild(rangeWrap);
+    rangePanel.className += ' span2';
+    root.appendChild(rangePanel);
+
     this.hot=0;this.hi=0;
     return root;
   },
@@ -2204,6 +2409,39 @@ VIEWS.health={
       if(tbo>70)n.push('<p style="margin:0 0 8px">More than 70% of the 1200 h overhaul interval is consumed. Plan the shop visit against the limiting component in the RUL view.</p>');
       if(!n.length)n.push('<p style="margin:0" class="dim">All subsystems are above 80/100 and no exceedance is latched. Nothing requires attention at this time.</p>');
       this.notes.innerHTML=n.join('');
+
+      /* Render Engine Range Table in Health View */
+      const rangeData = evaluateEngineRange(m, S);
+      if (this.rangeTbl) {
+        this.rangeTbl.innerHTML = `
+          <thead>
+            <tr>
+              <th>Detected Parameter</th>
+              <th class="num">Actual Value</th>
+              <th class="num">Reference Value / Range</th>
+              <th class="num">Deviation</th>
+              <th style="width:110px;text-align:center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rangeData.map(r => {
+              const statusClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+              const pillClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+              return `
+                <tr>
+                  <td><strong>${r.param}</strong></td>
+                  <td class="num mono">${r.actualStr}</td>
+                  <td class="num mono dimmer">${r.refStr}</td>
+                  <td class="num mono ${statusClass}">${r.devStr}</td>
+                  <td style="text-align:center">
+                    <span class="pill ${pillClass}" style="font-size:10px;padding:2px 8px;font-weight:700">${r.status}</span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        `;
+      }
     }
   },
   seed(S){this.ch.clear();S.rec.buf.forEach(f=>this.ch.push(f.t,[f.health,null]));}

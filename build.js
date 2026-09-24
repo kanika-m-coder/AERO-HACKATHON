@@ -11,6 +11,7 @@ const ORDER = [
   'src/core/EventBus.js',
   'src/core/auth.js',
   'src/backend/limits.js',
+  'src/backend/engineRange.js',
   'src/backend/faults.js',
   'src/backend/profiles.js',
   'src/backend/EngineModel.js',

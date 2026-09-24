@@ -8,6 +8,7 @@ import { renderLog } from '../components/log.js';
 import { VIEWS } from './registry.js';
 import { auth } from '../../core/auth.js';
 import { bus } from '../../core/EventBus.js';
+import { evaluateEngineRange } from '../../backend/engineRange.js';
 
 VIEWS.overview={
   layer:'09', nav:'Mission overview', title:'Mission overview',
@@ -93,6 +94,16 @@ VIEWS.overview={
     this.ch2.mount(c2.body);
     root.appendChild(c2);
 
+    /* --- Engine Range (Engine Reference Values) Section --- */
+    const rangePanel = panel('Engine Range', 'ENGINE REFERENCE VALUES & MONITORING STATUS');
+    rangePanel.body.className = 'panel-body tight';
+    const rangeWrap = el('div', 'tbl-wrap');
+    this.rangeTbl = el('table');
+    rangeWrap.appendChild(this.rangeTbl);
+    rangePanel.body.appendChild(rangeWrap);
+    rangePanel.className += ' span2';
+    root.appendChild(rangePanel);
+
     const al=panel('Recent events','LAST 12');
     this.log=el('div','log');al.body.appendChild(this.log);
     al.className+=' span2';
@@ -174,6 +185,39 @@ VIEWS.overview={
     }
 
     this.updateSecLogs();
+
+    /* Update Engine Range (Engine Reference Values) Table */
+    const rangeData = evaluateEngineRange(m, S);
+    if (this.rangeTbl) {
+      this.rangeTbl.innerHTML = `
+        <thead>
+          <tr>
+            <th>Detected Parameter</th>
+            <th class="num">Actual Value</th>
+            <th class="num">Reference Value / Range</th>
+            <th class="num">Deviation</th>
+            <th style="width:110px;text-align:center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rangeData.map(r => {
+            const statusClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+            const pillClass = r.status === 'HEALTHY' ? 'nom' : r.status === 'WARNING' ? 'cau' : 'wrn';
+            return `
+              <tr>
+                <td><strong>${r.param}</strong></td>
+                <td class="num mono">${r.actualStr}</td>
+                <td class="num mono dimmer">${r.refStr}</td>
+                <td class="num mono ${statusClass}">${r.devStr}</td>
+                <td style="text-align:center">
+                  <span class="pill ${pillClass}" style="font-size:10px;padding:2px 8px;font-weight:700">${r.status}</span>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      `;
+    }
 
     this.ch1.push(S.t,[m.powerHp,e.powerHp,m.map]);
     this.ch2.push(S.t,[Math.max(...m.cht),m.cltT,m.oilT]);

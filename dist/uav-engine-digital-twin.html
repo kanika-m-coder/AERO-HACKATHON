@@ -257,48 +257,102 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
   .view{padding:14px}
 }
 
-/* ---------- Security & Login Styles ---------- */
+/* ---------- Security & Login Styles (Aerospace Cybernetic Theme) ---------- */
 .login-overlay {
   position: fixed; inset: 0; z-index: 100;
-  background: rgba(11, 16, 20, 0.95); backdrop-filter: blur(6px);
+  background: radial-gradient(circle at 50% 40%, rgba(14, 30, 42, 0.95) 0%, rgba(7, 12, 16, 0.98) 100%),
+              repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(34, 48, 58, 0.15) 39px, rgba(34, 48, 58, 0.15) 40px),
+              repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(34, 48, 58, 0.15) 39px, rgba(34, 48, 58, 0.15) 40px);
+  backdrop-filter: blur(14px);
   display: flex; align-items: center; justify-content: center;
-  padding: 20px; overflow-y: auto;
+  padding: 20px; overflow-y: auto; opacity: 1;
+  transition: opacity 0.45s ease, backdrop-filter 0.45s ease;
 }
+.login-overlay.launching-exit {
+  opacity: 0; pointer-events: none; backdrop-filter: blur(0px);
+}
+
 .login-card {
-  width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--rule);
-  padding: 28px; border-radius: 4px; box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+  width: 100%; max-width: 440px; background: rgba(14, 22, 28, 0.92);
+  border: 1px solid rgba(90, 183, 201, 0.35); padding: 28px; border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(90, 183, 201, 0.15);
+  position: relative; overflow: hidden; transform: scale(1) translateY(0);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease, border-color 0.3s;
 }
+.login-card.launching-exit {
+  transform: scale(0.93) translateY(-18px); opacity: 0; border-color: var(--nominal);
+}
+
+/* Glowing top scanline beam */
+.login-card-scanline {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--info), var(--caution), transparent);
+  background-size: 200% 100%; animation: scanlineGlow 3s ease-in-out infinite;
+}
+@keyframes scanlineGlow {
+  0% { background-position: -100% 0; }
+  50% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Launch Progress Beam */
+.launch-progress-beam {
+  position: absolute; top: 0; left: 0; height: 3px; background: var(--nominal);
+  box-shadow: 0 0 12px var(--nominal); width: 0%; transition: width 0.8s ease-out;
+  z-index: 10;
+}
+
 .login-header { text-align: center; margin-bottom: 22px; }
-.login-brand-logo { width: 44px; height: 44px; border-radius: 8px; margin-bottom: 8px; object-fit: contain; }
-.login-title { font-size: 20px; font-weight: 700; margin: 4px 0 2px; letter-spacing: 0.05em; color: var(--ink); }
-.login-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+.login-brand-logo {
+  width: 48px; height: 48px; border-radius: 10px; margin-bottom: 10px; object-fit: contain;
+  box-shadow: 0 0 24px rgba(90, 183, 201, 0.45); border: 1px solid rgba(90, 183, 201, 0.5);
+  transition: transform 0.3s ease;
+}
+.login-brand-logo:hover { transform: scale(1.06) rotate(3deg); }
+
+.login-title {
+  font-size: 21px; font-weight: 700; margin: 4px 0 2px; letter-spacing: 0.06em;
+  color: #F0F6FA; text-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+.login-sub { font-family: var(--mono); font-size: 10.5px; color: var(--info); letter-spacing: 0.08em; }
+
+.login-tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid rgba(90, 183, 201, 0.2); }
+.login-tab-btn {
+  flex: 1; padding: 10px; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--ink-3); font-size: 13px; font-family: var(--sans); cursor: pointer; transition: color 0.2s, border-color 0.2s;
+}
+.login-tab-btn:hover { color: var(--ink-2); }
+.login-tab-btn.active { color: #F0F6FA; font-weight: 600; border-bottom-color: var(--caution); }
 
 .login-form { display: flex; flex-direction: column; gap: 14px; }
-.login-field { display: flex; flex-direction: column; gap: 4px; }
-.login-field label { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); letter-spacing: 0.06em; }
+.login-field { display: flex; flex-direction: column; gap: 5px; }
+.login-field label { font-family: var(--mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.08em; }
 .login-input {
-  background: var(--bg); border: 1px solid var(--rule); color: var(--ink);
-  padding: 9px 12px; font-size: 13.5px; font-family: var(--sans); border-radius: 2px;
+  background: rgba(8, 14, 18, 0.85); border: 1px solid rgba(34, 48, 58, 0.9); color: #F0F6FA;
+  padding: 10px 13px; font-size: 13.5px; font-family: var(--sans); border-radius: 4px;
+  transition: border-color 0.25s, box-shadow 0.25s;
 }
-.login-input:focus { border-color: var(--info); outline: none; }
-.login-btn {
-  background: var(--caution); color: #0B1014; font-weight: 600; padding: 10px;
-  border: 0; font-size: 13.5px; border-radius: 2px; cursor: pointer; margin-top: 6px;
-  font-family: var(--sans); transition: background .15s;
-}
-.login-btn:hover { filter: brightness(1.1); }
-.login-err { font-size: 12px; color: var(--warn); margin-top: 4px; text-align: center; font-family: var(--mono); }
+.login-input:focus { border-color: var(--info); box-shadow: 0 0 14px rgba(90, 183, 201, 0.35); outline: none; }
 
-.login-demos { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule-soft); }
-.login-demos p { margin: 0 0 8px; font-size: 10.5px; font-family: var(--mono); color: var(--ink-3); }
-.demo-btn-group { display: flex; gap: 8px; }
-.demo-btn {
-  flex: 1; padding: 8px 10px; background: var(--bg-2); border: 1px solid var(--rule-soft);
-  color: var(--ink-2); font-size: 11px; font-family: var(--mono); cursor: pointer; text-align: left;
-  border-radius: 2px; line-height: 1.35;
+.login-btn {
+  background: linear-gradient(135deg, #E8A33D 0%, #D4881E 100%); color: #0B1014;
+  font-weight: 700; padding: 11px; border: 0; font-size: 13px; border-radius: 4px;
+  cursor: pointer; margin-top: 8px; font-family: var(--sans); letter-spacing: 0.05em;
+  box-shadow: 0 4px 16px rgba(232, 163, 61, 0.3); transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.demo-btn:hover { border-color: var(--info); color: var(--ink); }
-.demo-btn strong { color: var(--ink); display: block; font-size: 11.5px; }
+.login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(232, 163, 61, 0.45); }
+.login-btn:active { transform: translateY(1px); }
+
+.login-btn.launching {
+  background: linear-gradient(135deg, #7ED6A5 0%, #3FB978 100%); color: #0B1014;
+  box-shadow: 0 4px 20px rgba(126, 214, 165, 0.5); pointer-events: none;
+}
+
+.login-err {
+  font-size: 12px; color: var(--warn); margin-top: 4px; text-align: center;
+  font-family: var(--mono); background: rgba(229, 72, 77, 0.1); padding: 6px; border: 1px solid rgba(229, 72, 77, 0.3); border-radius: 3px;
+}
 
 .security-badge-pill {
   display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px;
@@ -1440,15 +1494,18 @@ function buildLoginOverlay(onSuccess) {
   const card = el('div', 'login-card');
 
   card.innerHTML = `
+    <div class="login-card-scanline"></div>
+    <div class="launch-progress-beam" id="launchBeam"></div>
+
     <div class="login-header">
       <img src="./assets/logo.jpg" alt="AeroTwin AI Logo" class="login-brand-logo" onerror="this.style.display='none'">
       <div class="login-title">AeroTwin AI</div>
-      <div class="login-sub">SECURE AGENT & TELEMETRY ACCESS</div>
+      <div class="login-sub">LAYER 00 · GATEWAY SECURITY</div>
     </div>
     
-    <div class="login-tabs" style="display:flex;margin-bottom:18px;border-bottom:1px solid var(--rule-soft)">
-      <button type="button" class="login-tab-btn active" id="tabSignin" style="flex:1;padding:8px;background:none;border:0;border-bottom:2px solid var(--caution);color:var(--ink);font-weight:600;font-size:13px;cursor:pointer">Sign In</button>
-      <button type="button" class="login-tab-btn" id="tabRegister" style="flex:1;padding:8px;background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-3);font-size:13px;cursor:pointer">Create Account</button>
+    <div class="login-tabs">
+      <button type="button" class="login-tab-btn active" id="tabSignin">Sign In</button>
+      <button type="button" class="login-tab-btn" id="tabRegister">Create Account</button>
     </div>
 
     <!-- Sign In Form -->
@@ -1462,8 +1519,10 @@ function buildLoginOverlay(onSuccess) {
         <input type="password" id="loginPass" class="login-input" placeholder="••••••••" required autocomplete="current-password">
       </div>
       <div id="loginErr" class="login-err" style="display:none"></div>
-      <button type="submit" class="login-btn">Authenticate & Launch Session</button>
-      <div style="text-align:center;margin-top:10px">
+      <button type="submit" class="login-btn" id="btnSignIn">
+        <span>Authenticate & Launch Session</span>
+      </button>
+      <div style="text-align:center;margin-top:8px">
         <a href="#" id="linkToRegister" style="font-size:12px;color:var(--info);text-decoration:none">Don't have an account? Create Account</a>
       </div>
     </form>
@@ -1490,8 +1549,10 @@ function buildLoginOverlay(onSuccess) {
         </select>
       </div>
       <div id="regErr" class="login-err" style="display:none"></div>
-      <button type="submit" class="login-btn" style="background:var(--nominal)">Create Account & Sign In</button>
-      <div style="text-align:center;margin-top:10px">
+      <button type="submit" class="login-btn" id="btnRegister" style="background:linear-gradient(135deg, #5AB7C9 0%, #1F7C8C 100%);color:#0B1014">
+        <span>Create Account & Sign In</span>
+      </button>
+      <div style="text-align:center;margin-top:8px">
         <a href="#" id="linkToSignin" style="font-size:12px;color:var(--info);text-decoration:none">Already have an account? Sign In</a>
       </div>
     </form>
@@ -1506,31 +1567,20 @@ function buildLoginOverlay(onSuccess) {
   const registerForm = card.querySelector('#registerForm');
   const loginErr = card.querySelector('#loginErr');
   const regErr = card.querySelector('#regErr');
+  const launchBeam = card.querySelector('#launchBeam');
 
   const switchTab = (tab) => {
     currentTab = tab;
     loginErr.style.display = 'none';
     regErr.style.display = 'none';
     if (tab === 'signin') {
-      tabSignin.style.borderBottomColor = 'var(--caution)';
-      tabSignin.style.color = 'var(--ink)';
-      tabSignin.style.fontWeight = '600';
-
-      tabRegister.style.borderBottomColor = 'transparent';
-      tabRegister.style.color = 'var(--ink-3)';
-      tabRegister.style.fontWeight = '400';
-
+      tabSignin.classList.add('active');
+      tabRegister.classList.remove('active');
       loginForm.style.display = 'flex';
       registerForm.style.display = 'none';
     } else {
-      tabRegister.style.borderBottomColor = 'var(--nominal)';
-      tabRegister.style.color = 'var(--ink)';
-      tabRegister.style.fontWeight = '600';
-
-      tabSignin.style.borderBottomColor = 'transparent';
-      tabSignin.style.color = 'var(--ink-3)';
-      tabSignin.style.fontWeight = '400';
-
+      tabRegister.classList.add('active');
+      tabSignin.classList.remove('active');
       registerForm.style.display = 'flex';
       loginForm.style.display = 'none';
     }
@@ -1541,6 +1591,29 @@ function buildLoginOverlay(onSuccess) {
   card.querySelector('#linkToRegister').onclick = (e) => { e.preventDefault(); switchTab('register'); };
   card.querySelector('#linkToSignin').onclick = (e) => { e.preventDefault(); switchTab('signin'); };
 
+  // Launch transition helper
+  const triggerLaunchAnimation = (submitBtn, user, callback) => {
+    submitBtn.classList.add('launching');
+    submitBtn.innerHTML = `<span class="mono">⚡ VERIFYING JWT & TELEMETRY...</span>`;
+    if (launchBeam) launchBeam.style.width = '45%';
+
+    setTimeout(() => {
+      submitBtn.innerHTML = `<span class="mono">🛡️ ACCESS GRANTED · LAUNCHING SESSION...</span>`;
+      if (launchBeam) launchBeam.style.width = '100%';
+    }, 380);
+
+    setTimeout(() => {
+      card.classList.add('launching-exit');
+      overlayEl.classList.add('launching-exit');
+    }, 750);
+
+    setTimeout(() => {
+      hideLoginOverlay();
+      toast(`Authenticated: Welcome ${user.name || user.username} (${user.role})`);
+      if (callback) callback(user);
+    }, 1150);
+  };
+
   // Handle Login Submit
   loginForm.onsubmit = (e) => {
     e.preventDefault();
@@ -1549,8 +1622,7 @@ function buildLoginOverlay(onSuccess) {
     const p = card.querySelector('#loginPass').value;
     const res = auth.login(u, p);
     if (res.success) {
-      hideLoginOverlay();
-      if (onSuccess) onSuccess(res.user);
+      triggerLaunchAnimation(card.querySelector('#btnSignIn'), res.user, onSuccess);
     } else {
       loginErr.textContent = res.message || 'Invalid username or password';
       loginErr.style.display = 'block';
@@ -1568,8 +1640,7 @@ function buildLoginOverlay(onSuccess) {
 
     const res = auth.register({ name, username, password, role });
     if (res.success) {
-      hideLoginOverlay();
-      if (onSuccess) onSuccess(res.user);
+      triggerLaunchAnimation(card.querySelector('#btnRegister'), res.user, onSuccess);
     } else {
       regErr.textContent = res.message || 'Registration failed';
       regErr.style.display = 'block';

@@ -1,5 +1,6 @@
 import { el, $ } from '../../core/util.js';
 import { auth } from '../../core/auth.js';
+import { toast } from './toast.js';
 
 let overlayEl = null;
 let currentTab = 'signin'; // 'signin' or 'register'
@@ -11,15 +12,18 @@ export function buildLoginOverlay(onSuccess) {
   const card = el('div', 'login-card');
 
   card.innerHTML = `
+    <div class="login-card-scanline"></div>
+    <div class="launch-progress-beam" id="launchBeam"></div>
+
     <div class="login-header">
       <img src="./assets/logo.jpg" alt="AeroTwin AI Logo" class="login-brand-logo" onerror="this.style.display='none'">
       <div class="login-title">AeroTwin AI</div>
-      <div class="login-sub">SECURE AGENT & TELEMETRY ACCESS</div>
+      <div class="login-sub">LAYER 00 · GATEWAY SECURITY</div>
     </div>
     
-    <div class="login-tabs" style="display:flex;margin-bottom:18px;border-bottom:1px solid var(--rule-soft)">
-      <button type="button" class="login-tab-btn active" id="tabSignin" style="flex:1;padding:8px;background:none;border:0;border-bottom:2px solid var(--caution);color:var(--ink);font-weight:600;font-size:13px;cursor:pointer">Sign In</button>
-      <button type="button" class="login-tab-btn" id="tabRegister" style="flex:1;padding:8px;background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-3);font-size:13px;cursor:pointer">Create Account</button>
+    <div class="login-tabs">
+      <button type="button" class="login-tab-btn active" id="tabSignin">Sign In</button>
+      <button type="button" class="login-tab-btn" id="tabRegister">Create Account</button>
     </div>
 
     <!-- Sign In Form -->
@@ -33,8 +37,10 @@ export function buildLoginOverlay(onSuccess) {
         <input type="password" id="loginPass" class="login-input" placeholder="••••••••" required autocomplete="current-password">
       </div>
       <div id="loginErr" class="login-err" style="display:none"></div>
-      <button type="submit" class="login-btn">Authenticate & Launch Session</button>
-      <div style="text-align:center;margin-top:10px">
+      <button type="submit" class="login-btn" id="btnSignIn">
+        <span>Authenticate & Launch Session</span>
+      </button>
+      <div style="text-align:center;margin-top:8px">
         <a href="#" id="linkToRegister" style="font-size:12px;color:var(--info);text-decoration:none">Don't have an account? Create Account</a>
       </div>
     </form>
@@ -61,8 +67,10 @@ export function buildLoginOverlay(onSuccess) {
         </select>
       </div>
       <div id="regErr" class="login-err" style="display:none"></div>
-      <button type="submit" class="login-btn" style="background:var(--nominal)">Create Account & Sign In</button>
-      <div style="text-align:center;margin-top:10px">
+      <button type="submit" class="login-btn" id="btnRegister" style="background:linear-gradient(135deg, #5AB7C9 0%, #1F7C8C 100%);color:#0B1014">
+        <span>Create Account & Sign In</span>
+      </button>
+      <div style="text-align:center;margin-top:8px">
         <a href="#" id="linkToSignin" style="font-size:12px;color:var(--info);text-decoration:none">Already have an account? Sign In</a>
       </div>
     </form>
@@ -77,31 +85,20 @@ export function buildLoginOverlay(onSuccess) {
   const registerForm = card.querySelector('#registerForm');
   const loginErr = card.querySelector('#loginErr');
   const regErr = card.querySelector('#regErr');
+  const launchBeam = card.querySelector('#launchBeam');
 
   const switchTab = (tab) => {
     currentTab = tab;
     loginErr.style.display = 'none';
     regErr.style.display = 'none';
     if (tab === 'signin') {
-      tabSignin.style.borderBottomColor = 'var(--caution)';
-      tabSignin.style.color = 'var(--ink)';
-      tabSignin.style.fontWeight = '600';
-
-      tabRegister.style.borderBottomColor = 'transparent';
-      tabRegister.style.color = 'var(--ink-3)';
-      tabRegister.style.fontWeight = '400';
-
+      tabSignin.classList.add('active');
+      tabRegister.classList.remove('active');
       loginForm.style.display = 'flex';
       registerForm.style.display = 'none';
     } else {
-      tabRegister.style.borderBottomColor = 'var(--nominal)';
-      tabRegister.style.color = 'var(--ink)';
-      tabRegister.style.fontWeight = '600';
-
-      tabSignin.style.borderBottomColor = 'transparent';
-      tabSignin.style.color = 'var(--ink-3)';
-      tabSignin.style.fontWeight = '400';
-
+      tabRegister.classList.add('active');
+      tabSignin.classList.remove('active');
       registerForm.style.display = 'flex';
       loginForm.style.display = 'none';
     }
@@ -112,6 +109,29 @@ export function buildLoginOverlay(onSuccess) {
   card.querySelector('#linkToRegister').onclick = (e) => { e.preventDefault(); switchTab('register'); };
   card.querySelector('#linkToSignin').onclick = (e) => { e.preventDefault(); switchTab('signin'); };
 
+  // Launch transition helper
+  const triggerLaunchAnimation = (submitBtn, user, callback) => {
+    submitBtn.classList.add('launching');
+    submitBtn.innerHTML = `<span class="mono">⚡ VERIFYING JWT & TELEMETRY...</span>`;
+    if (launchBeam) launchBeam.style.width = '45%';
+
+    setTimeout(() => {
+      submitBtn.innerHTML = `<span class="mono">🛡️ ACCESS GRANTED · LAUNCHING SESSION...</span>`;
+      if (launchBeam) launchBeam.style.width = '100%';
+    }, 380);
+
+    setTimeout(() => {
+      card.classList.add('launching-exit');
+      overlayEl.classList.add('launching-exit');
+    }, 750);
+
+    setTimeout(() => {
+      hideLoginOverlay();
+      toast(`Authenticated: Welcome ${user.name || user.username} (${user.role})`);
+      if (callback) callback(user);
+    }, 1150);
+  };
+
   // Handle Login Submit
   loginForm.onsubmit = (e) => {
     e.preventDefault();
@@ -120,8 +140,7 @@ export function buildLoginOverlay(onSuccess) {
     const p = card.querySelector('#loginPass').value;
     const res = auth.login(u, p);
     if (res.success) {
-      hideLoginOverlay();
-      if (onSuccess) onSuccess(res.user);
+      triggerLaunchAnimation(card.querySelector('#btnSignIn'), res.user, onSuccess);
     } else {
       loginErr.textContent = res.message || 'Invalid username or password';
       loginErr.style.display = 'block';
@@ -139,8 +158,7 @@ export function buildLoginOverlay(onSuccess) {
 
     const res = auth.register({ name, username, password, role });
     if (res.success) {
-      hideLoginOverlay();
-      if (onSuccess) onSuccess(res.user);
+      triggerLaunchAnimation(card.querySelector('#btnRegister'), res.user, onSuccess);
     } else {
       regErr.textContent = res.message || 'Registration failed';
       regErr.style.display = 'block';

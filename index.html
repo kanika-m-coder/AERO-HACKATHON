@@ -290,18 +290,33 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; }
   .rail {
-    position: sticky; top: 0; z-index: 50; height: auto;
+    position: sticky; top: 0; z-index: 60; height: auto;
     border-right: 0; border-bottom: 1px solid var(--rule);
-    flex-direction: row; align-items: center; background: var(--bg-2);
-    padding: 0 4px; position: relative;
+    flex-direction: column; align-items: stretch; background: var(--bg-2);
+    padding: 0; position: relative; width: 100%;
   }
-  .brand { border-bottom: 0; padding: 10px 12px; width: 100%; display: flex; align-items: center; justify-content: space-between; }
+  .brand {
+    border-bottom: 1px solid var(--rule-soft); padding: 10px 14px;
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+  }
   .brand-sub { display: none; }
-  .mobile-menu-btn { display: flex; }
-  .rail-scroll { display: flex; overflow-x: auto; padding: 0; -webkit-overflow-scrolling: touch; }
+  .mobile-menu-btn { display: inline-flex; }
+  .rail-scroll {
+    display: flex; overflow-x: auto; width: 100%;
+    padding: 6px 8px; background: rgba(11, 19, 30, 0.95);
+    -webkit-overflow-scrolling: touch; gap: 6px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
   .rail-group, .rail-foot { display: none; }
-  .navitem { border-left: 0; border-bottom: 2px solid transparent; white-space: nowrap; padding: 10px 12px; font-size: 13px; }
-  .navitem[aria-current="true"] { border-left: 0; border-bottom-color: var(--caution); }
+  .navitem {
+    border-left: 0; border-bottom: 2px solid transparent;
+    white-space: nowrap; padding: 7px 11px; font-size: 12.5px;
+    background: rgba(255, 255, 255, 0.04); border-radius: 4px; flex: none;
+  }
+  .navitem[aria-current="true"] {
+    border-left: 0; border-bottom-color: var(--caution);
+    background: rgba(56, 189, 248, 0.2); font-weight: 600; color: #FFFFFF;
+  }
 
   /* Mobile Navigation Dropdown Overlay */
   .rail-scroll.mobile-open {

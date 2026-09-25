@@ -16,7 +16,7 @@ export function buildLoginOverlay(onSuccess) {
     <div class="launch-progress-beam" id="launchBeam"></div>
 
     <div class="login-header">
-      <img src="./assets/logo.jpg" alt="AeroTwin AI Logo" class="login-brand-logo" onerror="this.style.display='none'">
+      <img src="./assets/logo.jpg" alt="AeroTwin AI Logo" class="login-brand-logo">
       <div class="login-title">AeroTwin AI</div>
       <div class="login-sub">LAYER 00 · GATEWAY SECURITY</div>
     </div>

@@ -61,19 +61,42 @@ const js = ORDER.map(f => `\n/* ===== ${f} ===== */\n` + strip(read(f)).trim()).
 const css = STYLES.map(f => `/* ===== ${f} ===== */\n` + read(f).trim()).join('\n\n');
 
 let html = fs.existsSync(path.join(root, 'index.template.html')) ? read('index.template.html') : read('index.html');
-const logoPath = path.join(root, 'assets', 'logo.jpg');
-if (fs.existsSync(logoPath)) {
-  const logoB64 = fs.readFileSync(logoPath).toString('base64');
-  const logoDataUri = `data:image/jpeg;base64,${logoB64}`;
-  html = html.replace(/src="\.\/assets\/logo\.jpg"/g, `src="${logoDataUri}"`);
-  html = html.replace(/href="\.\/assets\/logo\.jpg"/g, `href="${logoDataUri}"`);
-}
 html = html.replace(/\n<link rel="stylesheet" href="\.\/src\/styles\/[^"]+">/g, '');
 html = html.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
 html = html.replace(
   '<script type="module" src="./src/main.js"></script>',
   `<script>\n${js}\n\ndocument.addEventListener('DOMContentLoaded', boot);\n</script>`
 );
+
+// Perform base64 logo data URI replacement on the complete HTML including bundled JS modules
+const logoPath = path.join(root, 'assets', 'logo.jpg');
+if (fs.existsSync(logoPath)) {
+  const logoB64 = fs.readFileSync(logoPath).toString('base64');
+  const logoDataUri = `data:image/jpeg;base64,${logoB64}`;
+  html = html.replace(/src="\\?\.\/assets\/logo\.jpg"/g, `src="${logoDataUri}"`);
+  html = html.replace(/href="\\?\.\/assets\/logo\.jpg"/g, `href="${logoDataUri}"`);
+  html = html.replace(/['"]\.\/assets\/logo\.jpg['"]/g, `'${logoDataUri}'`);
+}
+
+// Copy assets folder into dist/assets and public/assets
+const copyDirSync = (src, dest) => {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+};
+
+const assetsDir = path.join(root, 'assets');
+if (fs.existsSync(assetsDir)) {
+  copyDirSync(assetsDir, path.join(root, 'dist', 'assets'));
+  copyDirSync(assetsDir, path.join(root, 'public', 'assets'));
+}
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 fs.mkdirSync(path.join(root, 'public'), { recursive: true });

@@ -249,7 +249,6 @@ VIEWS.admin = {
   },
 
   update() {
-    this.renderUsers();
     this.renderAuditLog();
   },
   seed() {}

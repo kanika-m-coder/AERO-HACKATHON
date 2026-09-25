@@ -12,18 +12,16 @@
 <link rel="stylesheet" href="./src/styles/app.css">
 </head>
 <body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <div class="app">
-  <nav class="rail">
+  <nav class="rail" id="sidebarDrawer">
     <div class="brand">
       <div class="brand-mark">
         <img src="./assets/logo.jpg" alt="AeroTwin AI Logo" class="brand-logo-img">
         <span class="brand-name">AeroTwin AI</span>
       </div>
       <div class="brand-sub">MALE UAV · PISTON ENGINE TWIN</div>
-      <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation modules">
-        <span id="mobileMenuLabel">☰ 09 Mission overview</span>
-        <span class="arrow">▾</span>
-      </button>
+      <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar navigation">✕</button>
     </div>
     <div class="rail-scroll" id="nav"></div>
     <div class="rail-foot">
@@ -33,6 +31,16 @@
   </nav>
 
   <div class="main">
+    <header class="mobile-header" id="mobileHeader">
+      <button type="button" class="mobile-hamburger-btn" id="mobileHamburgerBtn" aria-label="Open navigation sidebar">
+        <span class="icon">☰</span>
+        <span class="label" id="mobileCurrentModuleLabel">09 Mission overview</span>
+      </button>
+      <div class="mobile-brand">
+        <img src="./assets/logo.jpg" alt="AeroTwin AI Logo" class="mobile-logo-img">
+        <span>AeroTwin AI</span>
+      </div>
+    </header>
     <header class="strip" id="strip"></header>
     <div class="masterbar" id="masterbar"></div>
     <div id="views"></div>

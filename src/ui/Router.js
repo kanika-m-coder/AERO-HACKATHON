@@ -36,6 +36,25 @@ export function buildNav(){
     });
   });
   updateNavPermissions();
+
+  const mobileBtn = $('#mobileMenuBtn');
+  if (mobileBtn) {
+    mobileBtn.onclick = (e) => {
+      e.stopPropagation();
+      nav.classList.toggle('mobile-open');
+      const isOpen = nav.classList.contains('mobile-open');
+      const arrow = mobileBtn.querySelector('.arrow');
+      if (arrow) arrow.textContent = isOpen ? '▴' : '▾';
+    };
+  }
+
+  document.addEventListener('click', (e) => {
+    if (nav && nav.classList.contains('mobile-open') && !nav.contains(e.target) && !mobileBtn?.contains(e.target)) {
+      nav.classList.remove('mobile-open');
+      const arrow = mobileBtn?.querySelector('.arrow');
+      if (arrow) arrow.textContent = '▾';
+    }
+  });
 }
 
 export function updateNavPermissions() {
@@ -93,6 +112,17 @@ export function route(k){
     const btn=NAVBTN[x];
     if(btn)btn.setAttribute('aria-current',String(x===k));
   });
+
+  const mobileLabel = $('#mobileMenuLabel');
+  if (mobileLabel && v) {
+    mobileLabel.textContent = `☰ ${v.layer} ${v.nav}`;
+  }
+  const nav = $('#nav');
+  if (nav) nav.classList.remove('mobile-open');
+  const mobileBtn = $('#mobileMenuBtn');
+  const arrow = mobileBtn?.querySelector('.arrow');
+  if (arrow) arrow.textContent = '▾';
+
   try{ v.seed&&v.seed(S); }catch(e){console.error(e);}
   try{ S.sensors&&v.update&&v.update(S); }catch(e){console.error(e);}
   window.scrollTo({top:0,behavior:'instant'});

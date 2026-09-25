@@ -20,7 +20,7 @@ const LAYERS=[
  ['10','Reporting and replay','1 Hz mission data recorder with scrub and playback; consolidated mission, health, RUL and maintenance-action report.','Recorder / Reporting']
 ];
 VIEWS.architecture={
-  layer:'\u2014', nav:'System architecture', title:'System architecture',
+  layer:'11', nav:'System architecture', title:'System architecture',
   desc:'How the ten layers stack up, and which module in this build implements each one. Layers carrying live data right now are marked.',
   build(){
     const root=el('div','grid g-2-1');

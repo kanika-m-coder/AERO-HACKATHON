@@ -7,7 +7,7 @@ import { VIEWS } from './registry.js';
 
 
 VIEWS.rul={
-  layer:'08', nav:'Remaining useful life', title:'Remaining useful life',
+  layer:'07', nav:'Remaining useful life', title:'Remaining useful life',
   desc:'Component wear is integrated continuously from load, temperature and detected fault severity. The Bayesian degradation model projects each state forward to its end-of-life threshold and returns a credible interval, not a single number.',
   build(){
     const root=el('div','grid');

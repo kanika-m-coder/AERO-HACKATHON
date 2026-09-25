@@ -191,10 +191,12 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
 .toggle[aria-pressed="true"]{background:color-mix(in srgb,var(--warn) 35%,transparent)}
 .toggle[aria-pressed="true"]::after{transform:translateX(18px);background:var(--warn)}
 
-.log{font-family:var(--mono);font-size:11.5px;max-height:320px;overflow-y:auto}
-.log-row{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--rule-soft)}
-.log-row .ts{color:var(--ink-3);flex:none}
-.log-row .sev{flex:none;width:52px}
+.log { font-family: var(--mono); font-size: 11.5px; max-height: 480px; overflow-y: auto; overflow-x: auto; }
+.log-row { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--rule-soft); min-width: 100%; }
+.log-row .ts { color: var(--ink-3); flex: 0 0 62px; font-size: 11px; white-space: nowrap; }
+.log-row .sev { flex: 0 0 155px; font-weight: 600; font-size: 10.5px; letter-spacing: 0.04em; white-space: nowrap; word-break: keep-all; }
+.log-row .txt { flex: 1 1 auto; color: var(--ink-2); word-break: break-word; min-width: 140px; }
+.log-row .usr { flex: 0 0 75px; text-align: right; color: var(--ink-3); font-size: 10px; white-space: nowrap; }
 
 /* EICAS tape cluster */
 .tapes{display:flex;gap:10px;overflow-x:auto;padding:14px 13px}
@@ -2222,7 +2224,7 @@ const VIEWS = {};
 
 /* ===== src/ui/views/overview.js ===== */
 VIEWS.overview={
-  layer:'09', nav:'Mission overview', title:'Mission overview',
+  layer:'01', nav:'Mission overview', title:'Mission overview',
   desc:'Live consolidated picture of the airframe, the engine and its digital twin. Protected by JWT authentication and Role-Based Access Control.',
   build(){
     const root=el('div','grid');
@@ -2456,7 +2458,7 @@ const RES_TOL={rpm:60,map:1.2,boost:1.0,dp:0.6,iat:6,powerHp:5,ff:2,fuelP:.04,oi
   oilT:7,cltT:6,vib1:1.1,vib2:1.0,volt:.6,amp:6,tas:6};
 
 VIEWS.twin={
-  layer:'05', nav:'Digital twin', title:'Digital twin core',
+  layer:'03', nav:'Digital twin', title:'Digital twin core',
   desc:'A calibrated model of a healthy engine of this type is run in lock-step at the same commanded operating point. The difference between what the sensors report and what the twin expects is the residual — the raw material for every layer above this one.',
   build(){
     const root=el('div','grid g-2-1');
@@ -2687,7 +2689,7 @@ VIEWS.telemetry={
 
 /* ===== src/ui/views/health.js ===== */
 VIEWS.health={
-  layer:'06', nav:'Engine health', title:'Engine health monitoring',
+  layer:'04', nav:'Engine health', title:'Engine health monitoring',
   desc:'Each subsystem carries a condition index that blends accumulated wear, residual energy against the twin, and any latched limit exceedance. Margins below show how close each parameter is sitting to its published limit.',
   build(){
     const root=el('div','grid g-1-2');
@@ -2828,7 +2830,7 @@ VIEWS.health={
 
 /* ===== src/ui/views/faults.js ===== */
 VIEWS.faults={
-  layer:'07', nav:'Fault detection', title:'Fault detection',
+  layer:'05', nav:'Fault detection', title:'Fault detection',
   desc:'A deterministic rule engine of 20 checks runs beside the machine-learning layer so that a fault is caught two independent ways. Rules use both absolute limits and physics cross-checks against the twin, with a 0.8 s persistence filter to reject transients.',
   build(){
     const root=el('div','grid g-2-1');
@@ -2908,7 +2910,7 @@ VIEWS.faults={
 
 /* ===== src/ui/views/predictive.js ===== */
 VIEWS.predictive={
-  layer:'08', nav:'Predictive analytics', title:'AI / ML predictive analytics',
+  layer:'06', nav:'Predictive analytics', title:'AI / ML predictive analytics',
   desc:'Three models run on the standardised residual vector: an LSTM autoencoder for unsupervised anomaly detection, a gradient-boosted classifier for fault mode, and a Bayesian degradation model feeding the RUL layer. Inference happens on-board, at frame rate.',
   build(){
     const root=el('div','grid g-2-1');
@@ -3002,7 +3004,7 @@ VIEWS.predictive={
 
 /* ===== src/ui/views/rul.js ===== */
 VIEWS.rul={
-  layer:'08', nav:'Remaining useful life', title:'Remaining useful life',
+  layer:'07', nav:'Remaining useful life', title:'Remaining useful life',
   desc:'Component wear is integrated continuously from load, temperature and detected fault severity. The Bayesian degradation model projects each state forward to its end-of-life threshold and returns a credible interval, not a single number.',
   build(){
     const root=el('div','grid');
@@ -3098,7 +3100,7 @@ VIEWS.rul={
 
 /* ===== src/ui/views/simulation.js ===== */
 VIEWS.simulation={
-  layer:'03', nav:'Simulation & faults', title:'Simulation and fault injection',
+  layer:'08', nav:'Simulation & faults', title:'Simulation and fault injection',
   desc:'Drive the plant model directly. Mission profiles fly themselves; manual mode gives you the throttle. Injected faults ramp in progressively, the way real degradation arrives, so you can watch detection latency rather than a step change.',
   build(){
     const root=el('div','grid g-1-2');
@@ -3203,7 +3205,7 @@ VIEWS.simulation={
 
 /* ===== src/ui/views/replay.js ===== */
 VIEWS.replay={
-  layer:'10', nav:'Mission replay', title:'Mission replay',
+  layer:'09', nav:'Mission replay', title:'Mission replay',
   desc:'The data recorder keeps a 1 Hz frame of every channel, the twin expectation, the anomaly score and any rule that was firing. Scrub back to the moment a caution appeared and read the whole engine state at that instant.',
   build(){
     const root=el('div','grid');
@@ -3392,7 +3394,7 @@ const LAYERS=[
  ['10','Reporting and replay','1 Hz mission data recorder with scrub and playback; consolidated mission, health, RUL and maintenance-action report.','Recorder / Reporting']
 ];
 VIEWS.architecture={
-  layer:'\u2014', nav:'System architecture', title:'System architecture',
+  layer:'11', nav:'System architecture', title:'System architecture',
   desc:'How the ten layers stack up, and which module in this build implements each one. Layers carrying live data right now are marked.',
   build(){
     const root=el('div','grid g-2-1');
@@ -3458,7 +3460,7 @@ HealthMonitor      anomaly \u00B7 mode \u00B7 RUL
 
 /* ===== src/ui/views/admin.js ===== */
 VIEWS.admin = {
-  layer: '11',
+  layer: '12',
   nav: 'Admin & Users',
   title: 'User Management & Security Administration',
   desc: 'Comprehensive access control for System Admin. View all registered users, inspect passwords, edit security roles, delete accounts, and monitor live authentication audit logs.',
@@ -3693,8 +3695,8 @@ VIEWS.admin = {
       row.innerHTML = `
         <span class="ts">${e.timeStr || ''}</span>
         <span class="sev ${sevClass}">${typeLabel}</span>
-        <span style="flex:1;color:var(--ink-2)">${e.txt}</span>
-        <span class="mono dimmer" style="font-size:10px">@${e.user}</span>
+        <span class="txt">${e.txt}</span>
+        <span class="usr">@${e.user}</span>
       `;
       this.auditLogBody.appendChild(row);
     });

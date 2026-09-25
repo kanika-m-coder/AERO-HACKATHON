@@ -10,7 +10,7 @@ import { evaluateEngineRange } from '../../backend/engineRange.js';
 
 
 VIEWS.health={
-  layer:'06', nav:'Engine health', title:'Engine health monitoring',
+  layer:'04', nav:'Engine health', title:'Engine health monitoring',
   desc:'Each subsystem carries a condition index that blends accumulated wear, residual energy against the twin, and any latched limit exceedance. Margins below show how close each parameter is sitting to its published limit.',
   build(){
     const root=el('div','grid g-1-2');

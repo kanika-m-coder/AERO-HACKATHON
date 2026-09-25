@@ -6,7 +6,7 @@ import { VIEWS } from './registry.js';
 import { bus } from '../../core/EventBus.js';
 
 VIEWS.admin = {
-  layer: '11',
+  layer: '12',
   nav: 'Admin & Users',
   title: 'User Management & Security Administration',
   desc: 'Comprehensive access control for System Admin. View all registered users, inspect passwords, edit security roles, delete accounts, and monitor live authentication audit logs.',
@@ -241,8 +241,8 @@ VIEWS.admin = {
       row.innerHTML = `
         <span class="ts">${e.timeStr || ''}</span>
         <span class="sev ${sevClass}">${typeLabel}</span>
-        <span style="flex:1;color:var(--ink-2)">${e.txt}</span>
-        <span class="mono dimmer" style="font-size:10px">@${e.user}</span>
+        <span class="txt">${e.txt}</span>
+        <span class="usr">@${e.user}</span>
       `;
       this.auditLogBody.appendChild(row);
     });

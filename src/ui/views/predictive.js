@@ -9,7 +9,7 @@ import { VIEWS } from './registry.js';
 
 
 VIEWS.predictive={
-  layer:'08', nav:'Predictive analytics', title:'AI / ML predictive analytics',
+  layer:'06', nav:'Predictive analytics', title:'AI / ML predictive analytics',
   desc:'Three models run on the standardised residual vector: an LSTM autoencoder for unsupervised anomaly detection, a gradient-boosted classifier for fault mode, and a Bayesian degradation model feeding the RUL layer. Inference happens on-board, at frame rate.',
   build(){
     const root=el('div','grid g-2-1');

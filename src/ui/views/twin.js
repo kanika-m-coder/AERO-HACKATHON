@@ -19,7 +19,7 @@ const RES_TOL={rpm:60,map:1.2,boost:1.0,dp:0.6,iat:6,powerHp:5,ff:2,fuelP:.04,oi
   oilT:7,cltT:6,vib1:1.1,vib2:1.0,volt:.6,amp:6,tas:6};
 
 VIEWS.twin={
-  layer:'05', nav:'Digital twin', title:'Digital twin core',
+  layer:'03', nav:'Digital twin', title:'Digital twin core',
   desc:'A calibrated model of a healthy engine of this type is run in lock-step at the same commanded operating point. The difference between what the sensors report and what the twin expects is the residual — the raw material for every layer above this one.',
   build(){
     const root=el('div','grid g-2-1');

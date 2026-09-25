@@ -9,7 +9,7 @@ import { VIEWS } from './registry.js';
 
 
 VIEWS.faults={
-  layer:'07', nav:'Fault detection', title:'Fault detection',
+  layer:'05', nav:'Fault detection', title:'Fault detection',
   desc:'A deterministic rule engine of 20 checks runs beside the machine-learning layer so that a fault is caught two independent ways. Rules use both absolute limits and physics cross-checks against the twin, with a 0.8 s persistence filter to reject transients.',
   build(){
     const root=el('div','grid g-2-1');

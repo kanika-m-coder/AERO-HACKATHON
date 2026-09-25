@@ -9,7 +9,7 @@ import { VIEWS } from './registry.js';
 
 
 VIEWS.replay={
-  layer:'10', nav:'Mission replay', title:'Mission replay',
+  layer:'09', nav:'Mission replay', title:'Mission replay',
   desc:'The data recorder keeps a 1 Hz frame of every channel, the twin expectation, the anomaly score and any rule that was firing. Scrub back to the moment a caution appeared and read the whole engine state at that instant.',
   build(){
     const root=el('div','grid');

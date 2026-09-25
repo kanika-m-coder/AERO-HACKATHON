@@ -11,7 +11,7 @@ import { bus } from '../../core/EventBus.js';
 import { evaluateEngineRange } from '../../backend/engineRange.js';
 
 VIEWS.overview={
-  layer:'09', nav:'Mission overview', title:'Mission overview',
+  layer:'01', nav:'Mission overview', title:'Mission overview',
   desc:'Live consolidated picture of the airframe, the engine and its digital twin. Protected by JWT authentication and Role-Based Access Control.',
   build(){
     const root=el('div','grid');

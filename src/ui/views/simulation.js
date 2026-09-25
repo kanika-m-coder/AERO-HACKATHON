@@ -9,7 +9,7 @@ import { VIEWS } from './registry.js';
 
 
 VIEWS.simulation={
-  layer:'03', nav:'Simulation & faults', title:'Simulation and fault injection',
+  layer:'08', nav:'Simulation & faults', title:'Simulation and fault injection',
   desc:'Drive the plant model directly. Mission profiles fly themselves; manual mode gives you the throttle. Injected faults ramp in progressively, the way real degradation arrives, so you can watch detection latency rather than a step change.',
   build(){
     const root=el('div','grid g-1-2');

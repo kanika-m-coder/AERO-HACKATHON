@@ -216,7 +216,17 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
   .panel-head {
     display: none !important;
   }
-  .app, .main, #views, .view {
+  /* Hide all inactive module views during printing */
+  .view {
+    display: none !important;
+  }
+  .view.active {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  .app, .main, #views {
     display: block !important;
     padding: 0 !important;
     margin: 0 !important;

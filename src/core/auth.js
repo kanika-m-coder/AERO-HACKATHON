@@ -166,7 +166,7 @@ export class SecurityManager {
     } catch (e) {}
 
     this.logEvent('register_success', newUser.username, newUser.role, `Account created for '${newUser.username}' (${newUser.role})`, 0);
-    return this.login(newUser.username, newUser.password);
+    return { success: true, user: newUser, message: 'Account registered successfully. Please sign in.' };
   }
 
   login(username, password) {

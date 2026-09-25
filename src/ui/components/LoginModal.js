@@ -68,7 +68,7 @@ export function buildLoginOverlay(onSuccess) {
       </div>
       <div id="regErr" class="login-err" style="display:none"></div>
       <button type="submit" class="login-btn btn-register" id="btnRegister">
-        <span>Create Account & Sign In</span>
+        <span>Register Account</span>
       </button>
       <div style="text-align:center;margin-top:8px">
         <a href="#" id="linkToSignin" style="font-size:12px;color:var(--info);text-decoration:none">Already have an account? Sign In</a>
@@ -158,7 +158,15 @@ export function buildLoginOverlay(onSuccess) {
 
     const res = auth.register({ name, username, password, role });
     if (res.success) {
-      triggerLaunchAnimation(card.querySelector('#btnRegister'), res.user, onSuccess);
+      toast(`Account registered! Please sign in with your credentials.`);
+      switchTab('signin');
+      const loginUserInput = card.querySelector('#loginUser');
+      const loginPassInput = card.querySelector('#loginPass');
+      if (loginUserInput) loginUserInput.value = res.user.username;
+      if (loginPassInput) {
+        loginPassInput.value = '';
+        loginPassInput.focus();
+      }
     } else {
       regErr.textContent = res.message || 'Registration failed';
       regErr.style.display = 'block';

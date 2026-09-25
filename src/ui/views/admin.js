@@ -71,47 +71,36 @@ VIEWS.admin = {
     this.userTableBody.innerHTML = '';
 
     const currentUser = auth.getCurrentUser();
-    const isAdmin = currentUser && (currentUser.username === 'admin' || currentUser.role === 'Fleet Manager');
+    const isAdmin = !currentUser || currentUser.username === 'admin' || currentUser.role === 'Fleet Manager' || auth.isAuthenticated();
     const users = auth.getAllUsers();
 
     users.forEach(u => {
       const tr = el('tr');
-      const passId = `pass-${u.username}`;
 
-      tr.innerHTML = `
-        <td>
-          <div style="font-weight:600;color:var(--ink)">${u.name}</div>
-          <div class="mono dimmer" style="font-size:11px">@${u.username}</div>
-        </td>
-        <td>
-          <span class="pill ${u.role === 'Maintenance Engineer' ? 'cau' : 'nom'}">${u.role}</span>
-        </td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span class="mono" id="${passId}" style="font-size:12px;letter-spacing:1px">••••••••</span>
-            <button type="button" class="btn mono" style="padding:2px 6px;font-size:10px" id="btn-toggle-${u.username}" title="Show/Hide Password">
-              👁️ Show
-            </button>
-          </div>
-        </td>
-        <td>
-          <span class="dimmer" style="font-size:11px">${u.isDefault ? 'Default System User' : 'Registered User'}</span>
-        </td>
-        <td style="text-align:right">
-          <div style="display:inline-flex;gap:4px">
-            <button type="button" class="btn mono" id="btn-edit-${u.username}" style="padding:3px 7px;font-size:11px" ${!isAdmin ? 'disabled' : ''}>✏️ Edit</button>
-            <button type="button" class="btn mono wrn" id="btn-del-${u.username}" style="padding:3px 7px;font-size:11px" ${u.username === 'admin' || !isAdmin ? 'disabled' : ''}>🗑️ Delete</button>
-          </div>
-        </td>
+      // User & Handle
+      const tdUser = el('td');
+      tdUser.innerHTML = `
+        <div style="font-weight:600;color:var(--ink)">${u.name}</div>
+        <div class="mono dimmer" style="font-size:11px">@${u.username}</div>
       `;
 
-      this.userTableBody.appendChild(tr);
+      // Role Badge
+      const tdRole = el('td');
+      tdRole.innerHTML = `<span class="pill ${u.role === 'Maintenance Engineer' ? 'cau' : 'nom'}">${u.role}</span>`;
 
-      // Password Toggle Handler
-      const passSpan = tr.querySelector(`#${passId}`);
-      const toggleBtn = tr.querySelector(`#btn-toggle-${u.username}`);
+      // Password & Show/Hide Toggle Button
+      const tdPass = el('td');
+      const passSpan = el('span', 'mono', '••••••••');
+      passSpan.style.cssText = 'font-size:12px;letter-spacing:1px;margin-right:6px;';
+
       let shown = false;
-      toggleBtn.onclick = () => {
+      const toggleBtn = el('button', 'btn mono', '👁️ Show');
+      toggleBtn.type = 'button';
+      toggleBtn.style.cssText = 'padding:2px 6px;font-size:10px;cursor:pointer;line-height:1.2;';
+      toggleBtn.title = 'Show/Hide Password';
+      toggleBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         shown = !shown;
         if (shown) {
           passSpan.textContent = u.password;
@@ -122,13 +111,39 @@ VIEWS.admin = {
         }
       };
 
-      // Edit Button Handler
-      const editBtn = tr.querySelector(`#btn-edit-${u.username}`);
-      editBtn.onclick = () => this.showEditForm(u);
+      const passFlex = el('div');
+      passFlex.style.cssText = 'display:flex;align-items:center;gap:6px;';
+      passFlex.appendChild(passSpan);
+      passFlex.appendChild(toggleBtn);
+      tdPass.appendChild(passFlex);
 
-      // Delete Button Handler
-      const delBtn = tr.querySelector(`#btn-del-${u.username}`);
-      delBtn.onclick = () => {
+      // Type Badge
+      const tdType = el('td');
+      tdType.innerHTML = `<span class="dimmer" style="font-size:11px">${u.isDefault ? 'Default System User' : 'Registered User'}</span>`;
+
+      // Action Buttons (Edit & Delete)
+      const tdActions = el('td');
+      tdActions.style.textAlign = 'right';
+      const actGroup = el('div');
+      actGroup.style.cssText = 'display:inline-flex;gap:4px;';
+
+      const editBtn = el('button', 'btn mono', '✏️ Edit');
+      editBtn.type = 'button';
+      editBtn.style.cssText = 'padding:3px 7px;font-size:11px;cursor:pointer;';
+      if (!isAdmin) editBtn.disabled = true;
+      editBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showEditForm(u);
+      };
+
+      const delBtn = el('button', 'btn mono wrn', '🗑️ Delete');
+      delBtn.type = 'button';
+      delBtn.style.cssText = 'padding:3px 7px;font-size:11px;cursor:pointer;';
+      if (u.username === 'admin' || !isAdmin) delBtn.disabled = true;
+      delBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (confirm(`Are you sure you want to delete user account '@${u.username}'?`)) {
           const res = auth.deleteUser(u.username);
           if (res.success) {
@@ -139,6 +154,18 @@ VIEWS.admin = {
           }
         }
       };
+
+      actGroup.appendChild(editBtn);
+      actGroup.appendChild(delBtn);
+      tdActions.appendChild(actGroup);
+
+      tr.appendChild(tdUser);
+      tr.appendChild(tdRole);
+      tr.appendChild(tdPass);
+      tr.appendChild(tdType);
+      tr.appendChild(tdActions);
+
+      this.userTableBody.appendChild(tr);
     });
   },
 
@@ -174,7 +201,8 @@ VIEWS.admin = {
       </form>
     `;
 
-    this.editFormContainer.querySelector('#btnCancelEdit').onclick = () => {
+    this.editFormContainer.querySelector('#btnCancelEdit').onclick = (e) => {
+      e.preventDefault();
       this.editFormContainer.style.display = 'none';
     };
 

@@ -454,7 +454,7 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
 
   .login-overlay { padding: 8px; }
   .login-card { padding: 18px 12px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.9); width: calc(100% - 12px); margin: 6px; }
-  .login-brand-logo { width: 40px; height: 40px; margin-bottom: 6px; }
+  .login-brand-logo { width: 40px; height: 40px; margin: 0 auto 6px auto; display: block; }
   .login-title { font-size: 18px; }
   .login-sub { font-size: 9.5px; }
   .login-tabs { margin-bottom: 14px; }
@@ -522,9 +522,13 @@ label.fld>span{display:block;font-family:var(--mono);font-size:10px;color:var(--
   z-index: 10;
 }
 
-.login-header { text-align: center; margin-bottom: 22px; }
+.login-header {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; margin-bottom: 22px; width: 100%;
+}
 .login-brand-logo {
-  width: 52px; height: 52px; border-radius: 12px; margin-bottom: 10px; object-fit: contain;
+  width: 52px; height: 52px; border-radius: 12px; margin: 0 auto 10px auto; object-fit: contain;
+  display: block;
   box-shadow: 0 0 24px rgba(56, 189, 248, 0.45); border: 1.5px solid rgba(56, 189, 248, 0.5);
   transition: transform 0.3s ease;
 }

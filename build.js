@@ -42,6 +42,7 @@ const ORDER = [
   'src/ui/views/replay.js',
   'src/ui/views/reports.js',
   'src/ui/views/architecture.js',
+  'src/ui/views/admin.js',
   'src/ui/Router.js',
   'src/ui/StatusStrip.js',
   'src/ui/Shell.js'
@@ -68,38 +69,19 @@ html = html.replace(
   `<script>\n${js}\n\ndocument.addEventListener('DOMContentLoaded', boot);\n</script>`
 );
 
-// Perform base64 logo data URI replacement on the complete HTML including bundled JS modules
 const logoPath = path.join(root, 'assets', 'logo.jpg');
 if (fs.existsSync(logoPath)) {
   const logoB64 = fs.readFileSync(logoPath).toString('base64');
   const logoDataUri = `data:image/jpeg;base64,${logoB64}`;
-  html = html.replace(/src="\\?\.\/assets\/logo\.jpg"/g, `src="${logoDataUri}"`);
-  html = html.replace(/href="\\?\.\/assets\/logo\.jpg"/g, `href="${logoDataUri}"`);
-  html = html.replace(/['"]\.\/assets\/logo\.jpg['"]/g, `'${logoDataUri}'`);
+  html = html.replaceAll('./assets/logo.jpg', logoDataUri);
 }
 
-// Copy assets folder into dist/assets and public/assets
-const copyDirSync = (src, dest) => {
-  fs.mkdirSync(dest, { recursive: true });
-  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDirSync(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-};
-
-const assetsDir = path.join(root, 'assets');
-if (fs.existsSync(assetsDir)) {
-  copyDirSync(assetsDir, path.join(root, 'dist', 'assets'));
-  copyDirSync(assetsDir, path.join(root, 'public', 'assets'));
+fs.mkdirSync(path.join(root, 'dist', 'assets'), { recursive: true });
+fs.mkdirSync(path.join(root, 'public', 'assets'), { recursive: true });
+if (fs.existsSync(logoPath)) {
+  fs.copyFileSync(logoPath, path.join(root, 'dist', 'assets', 'logo.jpg'));
+  fs.copyFileSync(logoPath, path.join(root, 'public', 'assets', 'logo.jpg'));
 }
-
-fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
-fs.mkdirSync(path.join(root, 'public'), { recursive: true });
 const rootOut = path.join(root, 'index.html');
 const publicOut = path.join(root, 'public', 'index.html');
 const distOut = path.join(root, 'dist', 'uav-engine-digital-twin.html');

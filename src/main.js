@@ -11,5 +11,6 @@ import './ui/views/simulation.js';
 import './ui/views/replay.js';
 import './ui/views/reports.js';
 import './ui/views/architecture.js';
+import './ui/views/admin.js';
 
 document.addEventListener('DOMContentLoaded', boot);

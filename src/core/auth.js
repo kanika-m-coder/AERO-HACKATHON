@@ -20,8 +20,8 @@ export const DEFAULT_USERS = {
 
 /* Role Permissions Mapping */
 export const ROLE_PERMISSIONS = {
-  'Fleet Manager': ['overview', 'telemetry', 'health', 'reports', 'architecture'],
-  'Maintenance Engineer': ['overview', 'telemetry', 'twin', 'health', 'faults', 'predictive', 'rul', 'simulation', 'replay', 'reports', 'architecture']
+  'Fleet Manager': ['overview', 'telemetry', 'health', 'reports', 'architecture', 'admin'],
+  'Maintenance Engineer': ['overview', 'telemetry', 'twin', 'health', 'faults', 'predictive', 'rul', 'simulation', 'replay', 'reports', 'architecture', 'admin']
 };
 
 function base64UrlEncode(str) {
@@ -46,7 +46,7 @@ export class SecurityManager {
 
   loadUsers() {
     try {
-      const stored = sessionStorage.getItem(this.regUsersKey);
+      const stored = localStorage.getItem(this.regUsersKey) || sessionStorage.getItem(this.regUsersKey);
       const custom = stored ? JSON.parse(stored) : {};
       return { ...DEFAULT_USERS, ...custom };
     } catch (e) {
@@ -56,13 +56,14 @@ export class SecurityManager {
 
   saveUsers(customUsers) {
     try {
+      localStorage.setItem(this.regUsersKey, JSON.stringify(customUsers));
       sessionStorage.setItem(this.regUsersKey, JSON.stringify(customUsers));
     } catch (e) {}
   }
 
   loadEvents() {
     try {
-      const stored = sessionStorage.getItem(this.eventsKey);
+      const stored = localStorage.getItem(this.eventsKey) || sessionStorage.getItem(this.eventsKey);
       return stored ? JSON.parse(stored) : [];
     } catch (e) {
       return [];
@@ -71,6 +72,7 @@ export class SecurityManager {
 
   saveEvents() {
     try {
+      localStorage.setItem(this.eventsKey, JSON.stringify(this.events.slice(0, 100)));
       sessionStorage.setItem(this.eventsKey, JSON.stringify(this.events.slice(0, 100)));
     } catch (e) {}
   }
@@ -144,7 +146,7 @@ export class SecurityManager {
     }
 
     if (this.users[cleanUser]) {
-      return { success: false, message: `Username '${cleanUser}' is already registered.` };
+      return { success: false, message: `Account username '${cleanUser}' is already registered! Only one account per username is allowed.` };
     }
 
     const newUser = {
@@ -159,7 +161,7 @@ export class SecurityManager {
     
     // Save custom users
     try {
-      const stored = sessionStorage.getItem(this.regUsersKey);
+      const stored = localStorage.getItem(this.regUsersKey) || sessionStorage.getItem(this.regUsersKey);
       const custom = stored ? JSON.parse(stored) : {};
       custom[cleanUser] = newUser;
       this.saveUsers(custom);
@@ -167,6 +169,73 @@ export class SecurityManager {
 
     this.logEvent('register_success', newUser.username, newUser.role, `Account created for '${newUser.username}' (${newUser.role})`, 0);
     return { success: true, user: newUser, message: 'Account registered successfully. Please sign in.' };
+  }
+
+  getAllUsers() {
+    return Object.values(this.users).map(u => ({
+      username: u.username,
+      name: u.name || u.username,
+      password: u.password,
+      role: u.role,
+      desc: u.desc || '',
+      isDefault: !!DEFAULT_USERS[u.username]
+    }));
+  }
+
+  updateUser(username, updates) {
+    const cleanUser = (username || '').trim().toLowerCase();
+    if (!this.users[cleanUser]) {
+      return { success: false, message: 'User not found.' };
+    }
+
+    const existing = this.users[cleanUser];
+    const updated = {
+      ...existing,
+      name: updates.name ? updates.name.trim() : existing.name,
+      password: updates.password ? updates.password : existing.password,
+      role: updates.role ? updates.role : existing.role
+    };
+
+    this.users[cleanUser] = updated;
+
+    try {
+      const stored = localStorage.getItem(this.regUsersKey) || sessionStorage.getItem(this.regUsersKey);
+      const custom = stored ? JSON.parse(stored) : {};
+      custom[cleanUser] = updated;
+      this.saveUsers(custom);
+    } catch (e) {}
+
+    this.logEvent('user_updated', cleanUser, updated.role, `Admin updated user profile for '${cleanUser}'`, 1);
+    bus.emit('auth_change', { authenticated: this.isAuthenticated(), user: this.getCurrentUser() });
+    return { success: true, user: updated };
+  }
+
+  deleteUser(username) {
+    const cleanUser = (username || '').trim().toLowerCase();
+    if (!this.users[cleanUser]) {
+      return { success: false, message: 'User not found.' };
+    }
+
+    if (cleanUser === 'admin') {
+      return { success: false, message: 'Cannot delete primary System Admin account.' };
+    }
+
+    const currentUser = this.getCurrentUser();
+    if (currentUser && currentUser.username === cleanUser) {
+      return { success: false, message: 'Cannot delete your active session account.' };
+    }
+
+    delete this.users[cleanUser];
+
+    try {
+      const stored = localStorage.getItem(this.regUsersKey) || sessionStorage.getItem(this.regUsersKey);
+      const custom = stored ? JSON.parse(stored) : {};
+      delete custom[cleanUser];
+      this.saveUsers(custom);
+    } catch (e) {}
+
+    this.logEvent('user_deleted', cleanUser, 'N/A', `Admin deleted user account '${cleanUser}'`, 2);
+    return { success: true };
   }
 
   login(username, password) {

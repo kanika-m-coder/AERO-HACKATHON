@@ -12,7 +12,8 @@ export const NAV=[
   ['Live monitoring',['overview','telemetry','twin','health']],
   ['Diagnosis and prediction',['faults','predictive','rul']],
   ['Operate',['simulation','replay','reports']],
-  ['Reference',['architecture']]
+  ['Reference',['architecture']],
+  ['Administration',['admin']]
 ];
 export const ORDER=NAV.flatMap(g=>g[1]);
 let current=null;

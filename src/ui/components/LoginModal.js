@@ -56,8 +56,8 @@ export function buildLoginOverlay(onSuccess) {
         <input type="text" id="regUser" class="login-input" placeholder="e.g. sarah.connor" required autocomplete="username">
       </div>
       <div class="login-field">
-        <label for="regPass">PASSWORD</label>
-        <input type="password" id="regPass" class="login-input" placeholder="••••••••" required autocomplete="new-password">
+        <label for="regPass">PASSWORD (MIN 8 CHARS & 1 SPECIAL SYMBOL)</label>
+        <input type="password" id="regPass" class="login-input" placeholder="e.g. Pass@1234 (8+ chars with special char)" required minlength="8" autocomplete="new-password">
       </div>
       <div class="login-field">
         <label for="regRole">SECURITY ROLE</label>

@@ -21,7 +21,7 @@ export const DEFAULT_USERS = {
 /* Role Permissions Mapping */
 export const ROLE_PERMISSIONS = {
   'Fleet Manager': ['overview', 'telemetry', 'health', 'reports', 'architecture', 'admin'],
-  'Maintenance Engineer': ['overview', 'telemetry', 'twin', 'health', 'faults', 'predictive', 'rul', 'simulation', 'replay', 'reports', 'architecture', 'admin']
+  'Maintenance Engineer': ['overview', 'telemetry', 'twin', 'health', 'faults', 'predictive', 'rul', 'simulation', 'replay', 'reports', 'architecture']
 };
 
 function base64UrlEncode(str) {
@@ -143,6 +143,15 @@ export class SecurityManager {
     const cleanUser = (username || '').trim().toLowerCase();
     if (!cleanUser || !password || !name) {
       return { success: false, message: 'All fields are required.' };
+    }
+
+    if (password.length < 8) {
+      return { success: false, message: 'Password must be at least 8 characters long.' };
+    }
+
+    const hasSpecialChar = /[^a-zA-Z0-9]/.test(password);
+    if (!hasSpecialChar) {
+      return { success: false, message: 'Password must contain at least one special character (e.g. @, #, $, %, !, &).' };
     }
 
     if (this.users[cleanUser]) {
